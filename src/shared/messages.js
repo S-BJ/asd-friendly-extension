@@ -18,8 +18,5 @@ export const MESSAGE_TYPES = Object.freeze({
   getFormContext: "GET_FORM_CONTEXT",
   getCommunityContext: "GET_COMMUNITY_CONTEXT",
   showAiResult: "SHOW_AI_RESULT",
-  showAiError: "SHOW_AI_ERROR",
-  pageProfileChanged: "PAGE_PROFILE_CHANGED",
-  applySettings: "APPLY_SETTINGS",
-  featureStateChanged: "FEATURE_STATE_CHANGED"
+  showAiError: "SHOW_AI_ERROR"
 });

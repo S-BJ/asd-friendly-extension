@@ -114,7 +114,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       return respondWith(completeFirstRun(message.payload).then((settings) => ({ settings })), sendResponse);
 
     case MESSAGE_TYPES.getLocalSettings:
-      return respondWith(getLocalSettings().then((settings) => ({ settings })), sendResponse);
+      return respondWith(
+        getLocalSettings().then((settings) => ({ settings, activeOrigin: getSenderTabOrigin(sender) })),
+        sendResponse
+      );
 
     case MESSAGE_TYPES.setLocalSettings:
       return respondWith(setLocalSettings(message.payload).then((settings) => ({ settings })), sendResponse);
@@ -700,6 +703,11 @@ function getMessageOrigin(message, sender) {
   const payload = safeObject(message.payload);
   const source = message.origin || payload.origin || sender?.tab?.url || "";
   const origin = originFromUrl(source);
+  return /^https?:$/i.test(new URL(origin || "http://x").protocol) && origin ? origin : "";
+}
+
+function getSenderTabOrigin(sender) {
+  const origin = originFromUrl(sender?.tab?.url || "");
   return /^https?:$/i.test(new URL(origin || "http://x").protocol) && origin ? origin : "";
 }
 

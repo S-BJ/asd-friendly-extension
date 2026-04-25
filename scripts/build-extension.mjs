@@ -17,6 +17,11 @@ const sourceAssets = [
   "rules",
   "shared"
 ];
+const excludedSourcePaths = new Set([
+  "background/site-overrides.js",
+  "content/classifier",
+  "shared/feature-policy.js"
+]);
 
 await ensureInsideRepo(extensionDist);
 await rm(extensionDist, { recursive: true, force: true });
@@ -44,7 +49,7 @@ async function copyRequiredFromSource(relativePath) {
 
   const destination = join(extensionDist, relativePath);
   await mkdir(dirname(destination), { recursive: true });
-  await cp(source, destination, { recursive: true });
+  await cp(source, destination, { recursive: true, filter: shouldCopySourcePath });
 }
 
 async function copyOptionalDirectory(relativePath) {
@@ -71,6 +76,8 @@ async function validateManifestReferences(manifest) {
   const referencedFiles = [
     manifest.background?.service_worker,
     manifest.action?.default_popup,
+    ...Object.values(manifest.icons || {}),
+    ...Object.values(manifest.action?.default_icon || {}),
     ...(manifest.declarative_net_request?.rule_resources || []).map((ruleset) => ruleset.path),
     ...(manifest.content_scripts || []).flatMap((script) => [
       ...(script.js || []),
@@ -84,6 +91,21 @@ async function validateManifestReferences(manifest) {
       throw new Error(`Manifest references a missing file: ${filePath}`);
     }
   }
+}
+
+function shouldCopySourcePath(sourcePath) {
+  const relativePath = toPosixPath(relative(sourceRoot, sourcePath));
+  if (!relativePath) return true;
+
+  for (const excludedPath of excludedSourcePaths) {
+    if (relativePath === excludedPath || relativePath.startsWith(`${excludedPath}/`)) return false;
+  }
+
+  return true;
+}
+
+function toPosixPath(value) {
+  return String(value || "").replace(/\\/g, "/");
 }
 
 async function writeBuildMetadata(manifest) {

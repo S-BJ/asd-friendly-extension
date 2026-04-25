@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
+import { readFile, stat } from "node:fs/promises";
 
 test("manifest avoids all-url schemes and keeps only required high-level permissions", async () => {
   const manifest = JSON.parse(await readFile(new URL("../src/manifest.json", import.meta.url), "utf8"));
@@ -8,6 +8,11 @@ test("manifest avoids all-url schemes and keeps only required high-level permiss
   assert.deepEqual(manifest.permissions, ["storage", "tabs", "scripting", "declarativeNetRequest"]);
   assert.deepEqual(manifest.host_permissions, ["http://*/*", "https://*/*"]);
   assert.deepEqual(manifest.content_scripts[0].matches, ["http://*/*", "https://*/*"]);
+  assert.equal(manifest.icons["128"], "icons/icon128.png");
+  assert.equal(manifest.action.default_icon["48"], "icons/icon48.png");
+  for (const iconPath of Object.values(manifest.icons)) {
+    assert.equal((await stat(new URL(`../${iconPath}`, import.meta.url))).isFile(), true);
+  }
   assert.equal(manifest.declarative_net_request.rule_resources[0].enabled, false);
   assert.equal(manifest.declarative_net_request.rule_resources[0].path, "rules/ad-block.json");
 });
@@ -105,6 +110,14 @@ test("ad blocking has a toggleable network ruleset and active-tab runtime inject
   assert.ok(parsedRules.some((rule) => rule.condition?.requestDomains?.includes("doubleclick.net")));
   assert.ok(parsedRules.some((rule) => rule.condition?.requestDomains?.includes("serv.ds.kakao.com")));
   assert.ok(parsedRules.some((rule) => /googlesyndication/.test(rule.condition?.urlFilter || "")));
+});
+
+test("build excludes test-only runtime helpers from packaged extension", async () => {
+  const buildScript = await readFile(new URL("../scripts/build-extension.mjs", import.meta.url), "utf8");
+
+  assert.match(buildScript, /content\/classifier/);
+  assert.match(buildScript, /shared\/feature-policy\.js/);
+  assert.match(buildScript, /background\/site-overrides\.js/);
 });
 
 test("page AI schema includes action and uncertainty fields", async () => {

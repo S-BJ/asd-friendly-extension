@@ -362,6 +362,7 @@
   const BACKGROUND_IMAGE_SOFTEN_ATTR = "data-asd-background-image-softened";
   let syncSettings = { ...DEFAULT_SETTINGS };
   let siteOverrides = {};
+  let activeOrigin = "";
   let currentProfile = PAGE_PROFILES.generic;
   let currentCommunitySubtype = COMMUNITY_SUBTYPES.none;
   let currentReaderTarget = null;
@@ -532,6 +533,7 @@
 
     syncSettings = normalizeSettings(settingsResponse?.settings);
     siteOverrides = normalizeSiteOverrides(localResponse?.settings?.siteOverrides);
+    activeOrigin = normalizeOrigin(localResponse?.activeOrigin) || normalizeOrigin(globalThis.location?.origin);
     refreshPageClassification();
     apply();
 
@@ -2186,9 +2188,19 @@
   }
 
   function getCurrentSiteOverride() {
-    const origin = typeof globalThis.location?.origin === "string" ? globalThis.location.origin : "";
+    const origin = activeOrigin || normalizeOrigin(globalThis.location?.origin);
     const overrides = siteOverrides && typeof siteOverrides === "object" ? siteOverrides : {};
     return normalizeSiteOverride(origin ? overrides[origin] : null);
+  }
+
+  function normalizeOrigin(value) {
+    if (typeof value !== "string") return "";
+    try {
+      const url = new URL(value);
+      return /^https?:$/i.test(url.protocol) ? url.origin : "";
+    } catch {
+      return "";
+    }
   }
 
   function sendRuntimeMessage(message) {
