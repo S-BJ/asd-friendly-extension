@@ -1,0 +1,2398 @@
+(() => {
+  const MESSAGE_TYPES = {
+    ping: "PING",
+    getSettings: "GET_SETTINGS",
+    getLocalSettings: "GET_LOCAL_SETTINGS",
+    getSelectionContext: "GET_SELECTION_CONTEXT",
+    getPageContext: "GET_PAGE_CONTEXT",
+    getFormContext: "GET_FORM_CONTEXT",
+    getCommunityContext: "GET_COMMUNITY_CONTEXT",
+    openAssistPanel: "OPEN_ASSIST_PANEL",
+    closeAssistPanel: "CLOSE_ASSIST_PANEL",
+    showAiResult: "SHOW_AI_RESULT",
+    showAiError: "SHOW_AI_ERROR"
+  };
+
+  const PAGE_PROFILES = {
+    reader: "reader",
+    portal: "portal",
+    community: "community",
+    form: "form",
+    generic: "generic"
+  };
+
+  const COMMUNITY_SUBTYPES = {
+    none: "none",
+    boardList: "board-list",
+    feed: "feed",
+    thread: "thread",
+    commentSection: "comment-section"
+  };
+
+  const SENSITIVE_PAGE_KINDS = {
+    none: "none",
+    login: "login",
+    payment: "payment",
+    account: "account",
+    health: "health",
+    legal: "legal",
+    identity: "identity",
+    upload: "upload"
+  };
+
+  const SENSITIVE_PATTERNS = [
+    [
+      SENSITIVE_PAGE_KINDS.login,
+      /\b(login|sign[- ]?in|password|2fa|otp)\b|로그인|비밀번호/i,
+      /\b(password|2fa|otp|verification code|security code)\b|비밀번호|인증번호|본인인증|(?=.*로그인)(?=.*아이디)/i
+    ],
+    [
+      SENSITIVE_PAGE_KINDS.payment,
+      /\b(payment|checkout|billing|credit ?card|pay ?now)\b|결제|청구/i,
+      /\b(card number|credit card|billing address|payment method|pay now|checkout)\b|카드번호|결제하기|결제 수단|청구 주소|주문 결제/i
+    ],
+    [
+      SENSITIVE_PAGE_KINDS.account,
+      /\b(account security|security settings|change password|reset password|account[- ]settings|profile[- ]security)\b|계정\s*보안|보안\s*설정|비밀번호\s*(변경|재설정)/i,
+      /\b(account security|profile settings|security settings|change password)\b|계정\s*(설정|보안)|프로필\s*(수정|설정)|보안\s*(설정|인증)|비밀번호\s*(변경|재설정)/i
+    ],
+    [
+      SENSITIVE_PAGE_KINDS.health,
+      /\b(medical record|health record|patient portal|clinic appointment|doctor appointment|prescription refill|test result)\b|진료\s*(예약|기록)|처방\s*(전|재발급|리필)|검진\s*(결과|예약)|의료\s*기록|환자\s*포털/i,
+      /\b(medical record|health record|clinic appointment|doctor appointment|patient portal|prescription refill|test result)\b|진료\s*(예약|기록)|처방\s*(전|재발급|리필)|검진\s*(결과|예약)|의료\s*(기록|상담)|건강\s*(기록|검진\s*결과)/i
+    ],
+    [
+      SENSITIVE_PAGE_KINDS.legal,
+      /\b(sign contract|legal document|court filing|attorney[- ]client|accept terms|agree to terms)\b|법률\s*(상담|문서)|계약서|약관\s*(동의|확인)|개인정보\s*(수집|제공|입력|동의)/i,
+      /\b(sign contract|legal document|court filing|attorney client|accept terms|agree to terms)\b|법률\s*(상담|문서)|계약서|약관\s*(동의|확인)|개인정보\s*(수집|제공|입력|동의)/i
+    ],
+    [
+      SENSITIVE_PAGE_KINDS.identity,
+      /\b(verify identity|identity verification|passport number|driver['’]?s? license number|upload id|id photo|ssn)\b|본인\s*(인증|확인)\s*(하기|진행|입력|수단)|주민등록번호|신분증\s*(업로드|촬영|제출)|여권\s*(번호|업로드|제출)|운전면허\s*(번호|업로드)/i,
+      /\b(verify identity|identity verification|enter passport|passport number|driver license number|upload id|id photo|ssn|social security number)\b|주민등록번호|신분증\s*(업로드|촬영|제출)|여권\s*(번호|업로드|제출)|운전면허\s*(번호|업로드)|본인\s*(인증|확인)\s*(하기|진행|입력|수단)|인증번호/i
+    ],
+    [
+      SENSITIVE_PAGE_KINDS.upload,
+      /\b(upload|uploads|uploaded|uploading|attach|attachment|choose file|select file|file picker|image-edit|photo upload|upload photo|upload image|profile photo|camera access|use camera|turn on camera|take photo|submit photo|verify photo|passport photo|id photo)\b|업로드|첨부|파일\s*(선택|첨부|업로드)|사진\s*(업로드|첨부|제출|등록|촬영|인증)|이미지\s*(업로드|첨부|제출|등록)|카메라\s*(권한|사용|촬영|켜기)/i,
+      /\b(upload|uploads|uploaded|uploading|choose file|select file|file picker|image-edit|photo upload|upload photo|upload image|profile photo|camera access|use camera|turn on camera|take photo|submit photo|verify photo|passport photo|id photo)\b|파일\s*(선택|첨부|업로드)|사진\s*(업로드|첨부|제출|등록|촬영|인증)|이미지\s*(업로드|첨부|제출|등록)|카메라\s*(권한|사용|촬영|켜기)/i
+    ]
+  ];
+
+  const DEFAULT_SETTINGS = {
+    enabled: true,
+    uiLanguage: "auto",
+    firstRunComplete: false,
+    activeComfortPreset: "minimal-safe",
+    themePreset: "soft-light",
+    textScale: 100,
+    lineHeight: 1.7,
+    pageDensity: "normal",
+    readableFontEnabled: false,
+    reduceContrastEnabled: false,
+    readerMode: false,
+    communityAssistEnabled: false,
+    adRemovalEnabled: false,
+    reduceMotion: true,
+    muteAutoplay: true,
+    imageSofteningEnabled: false,
+    imageSofteningStrength: "medium",
+    readingRuler: false,
+    aiHelperEnabled: false,
+    aiGentleSuggestions: true,
+    assistPanelDefaultOpen: false,
+    showActiveStateIndicator: true
+  };
+
+  const DEFAULT_SITE_OVERRIDE = {
+    disabled: false,
+    keepOriginalColors: false,
+    keepOriginalFonts: false,
+    allowAds: false,
+    disableContrastReduction: false,
+    allowAutoplay: false,
+    disableImageSoftening: false,
+    disableAiSuggestions: false,
+    disableCommunityAssist: false,
+    disableReaderMode: false
+  };
+
+  const THEMES = {
+    "soft-light": {
+      bg: "#faf7f0",
+      fg: "#1f2428",
+      fgOnDark: "#f3f5f7",
+      surface: "#fffdf8",
+      accent: "#3f6f8f",
+      accentOnDark: "#9fc4df",
+      muted: "#59656b",
+      border: "rgba(63, 111, 143, 0.24)"
+    },
+    "soft-dark": {
+      bg: "#151a1f",
+      fg: "#f1f3f5",
+      fgOnDark: "#f1f3f5",
+      surface: "#1f262c",
+      accent: "#8ab6d6",
+      accentOnDark: "#8ab6d6",
+      muted: "#b7c3cb",
+      border: "rgba(138, 182, 214, 0.28)"
+    },
+    "neutral-low-contrast": {
+      bg: "#efede7",
+      fg: "#272b2d",
+      fgOnDark: "#f2f1ed",
+      surface: "#fbfaf5",
+      accent: "#5c7472",
+      accentOnDark: "#a3bdbc",
+      muted: "#5f6767",
+      border: "rgba(92, 116, 114, 0.25)"
+    }
+  };
+
+  const PANEL_TEXT = {
+    en: {
+      helper: "AI helper",
+      loading: "Working",
+      issue: "Issue",
+      close: "Close",
+      confidenceNote: "Confidence note",
+      selectionTitle: "Selected text help",
+      pageTitle: "Page guide",
+      formTitle: "Form guide",
+      loadingFallback: "Preparing the AI helper.",
+      noItems: "Nothing specific was found.",
+      selectedText: "Selected text",
+      directMeaning: "Direct meaning",
+      likelyIntent: "Likely intent",
+      whatToDoNext: "What to do next",
+      calmerRewrite: "Calmer rewrite",
+      confusingParts: "Confusing parts",
+      pagePurpose: "Page purpose",
+      importantAreas: "Important areas",
+      visibleMainActions: "Visible main actions",
+      likelyNextStep: "Likely next step",
+      optionalAreas: "Optional or secondary areas",
+      warningsOrConfusingPoints: "Warnings or confusing points",
+      unknowns: "What is not clear yet",
+      formPurpose: "Form purpose",
+      requiredFields: "Required fields",
+      optionalFields: "Optional fields",
+      importantWarnings: "Important warnings",
+      timeSensitiveWarnings: "Time-sensitive warnings",
+      reviewBeforeSubmit: "Review before submit",
+      suggestedSteps: "Suggested steps"
+    },
+    ko: {
+      helper: "AI 도움",
+      loading: "처리 중",
+      issue: "문제",
+      close: "닫기",
+      confidenceNote: "확신도 메모",
+      selectionTitle: "선택한 텍스트 도움",
+      pageTitle: "페이지 가이드",
+      formTitle: "폼 가이드",
+      loadingFallback: "AI 도움을 준비하고 있어요.",
+      noItems: "특별히 찾은 내용이 없어요.",
+      selectedText: "선택한 텍스트",
+      directMeaning: "직접적인 의미",
+      likelyIntent: "의도 추정",
+      whatToDoNext: "다음에 할 일",
+      calmerRewrite: "더 차분한 다시쓰기",
+      confusingParts: "헷갈릴 수 있는 부분",
+      pagePurpose: "이 페이지의 목적",
+      importantAreas: "중요한 영역",
+      visibleMainActions: "보이는 주요 동작",
+      likelyNextStep: "가능성이 높은 다음 단계",
+      optionalAreas: "선택적이거나 부수적인 영역",
+      warningsOrConfusingPoints: "주의하거나 헷갈릴 수 있는 점",
+      unknowns: "아직 확실하지 않은 점",
+      formPurpose: "이 폼의 목적",
+      requiredFields: "필수로 보이는 항목",
+      optionalFields: "선택 항목",
+      importantWarnings: "중요한 경고",
+      timeSensitiveWarnings: "시간에 민감한 경고",
+      reviewBeforeSubmit: "제출 전 다시 볼 것",
+      suggestedSteps: "권장 순서"
+    }
+  };
+
+  const ASSIST_UI_STYLES = `
+    :host {
+      all: initial;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    #overlay {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 2147483646;
+      font-family: var(--asd-ui-font, system-ui, sans-serif);
+    }
+
+    #panel {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      bottom: 16px;
+      width: min(420px, calc(100vw - 32px));
+      display: grid;
+      grid-template-rows: auto 1fr;
+      border: 1px solid var(--asd-ui-border, rgba(63, 111, 143, 0.24));
+      border-radius: 10px;
+      background: var(--asd-ui-surface, #fffdf8);
+      color: var(--asd-ui-fg, #1f2428);
+      box-shadow: 0 18px 56px rgba(0, 0, 0, 0.18);
+      overflow: hidden;
+      pointer-events: auto;
+    }
+
+    #panel[hidden] {
+      display: none;
+    }
+
+    .header {
+      display: flex;
+      align-items: start;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 14px 14px 12px;
+      border-bottom: 1px solid var(--asd-ui-border, rgba(63, 111, 143, 0.24));
+      background: linear-gradient(180deg, var(--asd-ui-surface, #fffdf8), var(--asd-ui-surface-soft, #f8f4ed));
+    }
+
+    .heading {
+      min-width: 0;
+      display: grid;
+      gap: 5px;
+    }
+
+    .badge {
+      width: fit-content;
+      max-width: 100%;
+      padding: 3px 8px;
+      border-radius: 999px;
+      background: var(--asd-ui-accent-soft, rgba(63, 111, 143, 0.12));
+      color: var(--asd-ui-accent, #3f6f8f);
+      font-size: 11px;
+      line-height: 1.3;
+      font-weight: 700;
+    }
+
+    .title {
+      margin: 0;
+      font-size: 16px;
+      line-height: 1.35;
+      color: inherit;
+    }
+
+    .close {
+      flex: 0 0 auto;
+      min-height: 32px;
+      padding: 0 10px;
+      border: 1px solid var(--asd-ui-border, rgba(63, 111, 143, 0.24));
+      border-radius: 7px;
+      background: transparent;
+      color: inherit;
+      font: inherit;
+      cursor: pointer;
+    }
+
+    .body {
+      min-height: 0;
+      overflow: auto;
+      display: grid;
+      gap: 12px;
+      padding: 14px;
+    }
+
+    .message,
+    .section p,
+    .section li,
+    .section {
+      display: grid;
+      gap: 6px;
+      padding: 12px;
+      border: 1px solid var(--asd-ui-border, rgba(63, 111, 143, 0.24));
+      border-radius: 8px;
+      background: var(--asd-ui-card, rgba(255, 255, 255, 0.82));
+    }
+
+    .section h3 {
+      margin: 0;
+      font-size: 12px;
+      line-height: 1.35;
+      font-weight: 700;
+      color: var(--asd-ui-fg, #1f2428);
+    }
+
+    .section ul {
+      margin: 0;
+      padding-left: 18px;
+      display: grid;
+      gap: 6px;
+    }
+
+    @media (max-width: 720px) {
+      #panel {
+        top: auto;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        width: auto;
+        max-height: min(74vh, 680px);
+        border-radius: 12px 12px 0 0;
+      }
+    }
+  `;
+
+  const root = document.documentElement;
+  const IS_TOP_FRAME = (() => {
+    try {
+      return window.top === window.self;
+    } catch {
+      return false;
+    }
+  })();
+  const ASSIST_UI_HOST_ID = "asd-foundation-ai-host";
+  const CONTRAST_FIX_ATTR = "data-asd-contrast-fix";
+  const BACKGROUND_IMAGE_SOFTEN_ATTR = "data-asd-background-image-softened";
+  let syncSettings = { ...DEFAULT_SETTINGS };
+  let siteOverrides = {};
+  let currentProfile = PAGE_PROFILES.generic;
+  let currentCommunitySubtype = COMMUNITY_SUBTYPES.none;
+  let currentSensitivePageKind = SENSITIVE_PAGE_KINDS.none;
+  let indicator = null;
+  let ruler = null;
+  let rulerEnabled = false;
+  let adObserver = null;
+  let backgroundImageObserver = null;
+  let adRemovalEnabled = false;
+  let backgroundImageSofteningEnabled = false;
+  let collapsedAdIdCounter = 0;
+  let contrastObserver = null;
+  let contrastFixTimer = null;
+  let contrastFixPending = false;
+  let adScanTimer = null;
+  let adScanPending = false;
+  let backgroundImageScanTimer = null;
+  let backgroundImageScanPending = false;
+  let rulerRafPending = false;
+  let rulerPointerY = 0;
+  let lastReadyState = "";
+  let assistUi = null;
+  let assistState = { payload: null };
+  let themeBridgeState = null;
+  let extensionContextAvailable = true;
+  let previouslyFocusedElement = null;
+
+  const AD_CANDIDATE_SELECTOR = [
+    "ins.adsbygoogle",
+    "[data-ad]",
+    "[data-ad-client]",
+    "[data-ad-slot]",
+    "[data-ad-format]",
+    "[data-ad-unit]",
+    "[data-ad-manager]",
+    "[data-google-query-id]",
+    "[aria-label*=\"advertisement\" i]",
+    "[aria-label*=\"sponsored\" i]",
+    "iframe[src*=\"doubleclick.net\"]",
+    "iframe[src*=\"googlesyndication.com\"]",
+    "iframe[src*=\"googleadservices.com\"]",
+    "iframe[src*=\"adnxs.com\"]",
+    "iframe[src*=\"taboola.com\"]",
+    "iframe[src*=\"outbrain.com\"]",
+    "ins.kakao_ad_area",
+    ".kakao_ad_area",
+    ".view_ad_wrap",
+    ".power_link",
+    ".rightbanner1",
+    ".rightbanner2",
+    ".ad_bottom_list",
+    ".con_banner.writing_banbox",
+    "[id^=\"kakao_ad_\"]",
+    "div[id^=\"div-gpt-ad\"]",
+    "div[id*=\"ad-slot\" i]",
+    "div[class*=\"ad-slot\" i]",
+    "div[id*=\"ad_banner\" i]",
+    "div[class*=\"ad_banner\" i]",
+    "div[id*=\"google_ads\"]",
+    "div[id*=\"ad-container\" i]",
+    "div[class*=\"ad-container\" i]",
+    "div[id*=\"advert\" i]",
+    "div[class*=\"advert\" i]",
+    "div[class*=\"sponsored\" i]",
+    "[data-testid*=\"sponsored\" i]",
+    "[data-testid*=\"promoted\" i]",
+    "aside[class*=\"ad\" i]"
+  ].join(",");
+  const AD_MARKER_PATTERN =
+    /(^|[\s_-])(ad|ads|advert|advertisement|sponsor|sponsored|promoted|adslot|adunit|adbanner|adcontainer|adsbygoogle|dfp|gpt-ad|google_ads|kakao[_-]?ad[_-]?area|power[_-]?link|view[_-]?ad|ad[_-]?bottom)([\s_-]|$)|(^|[\s_-])rightbanner\d*($|[\s_-])|광고|파워링크/i;
+  const BACKGROUND_IMAGE_CANDIDATE_SELECTOR = [
+    "[role='img']",
+    "[style*='background' i]",
+    "[class*='image' i]",
+    "[class*='img' i]",
+    "[class*='photo' i]",
+    "[class*='thumb' i]",
+    "[class*='thumbnail' i]",
+    "[class*='poster' i]",
+    "[class*='media' i]",
+    "[class*='avatar' i]",
+    "[class*='hero' i]",
+    "[class*='banner' i]",
+    "[id*='image' i]",
+    "[id*='photo' i]",
+    "[id*='thumb' i]",
+    "[id*='poster' i]",
+    "[id*='media' i]",
+    "[id*='hero' i]",
+    "[id*='banner' i]"
+  ].join(",");
+
+  void initialize().catch(handleExtensionContextInvalidation);
+
+  chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+    if (!extensionContextAvailable) return false;
+    if (!message?.type) return false;
+
+    try {
+      switch (message.type) {
+        case MESSAGE_TYPES.ping:
+          sendResponse({ ok: true });
+          return true;
+
+        case MESSAGE_TYPES.getSelectionContext:
+          sendResponse(getSelectionContext());
+          return true;
+
+        case MESSAGE_TYPES.getPageContext:
+          sendResponse(getPageContext());
+          return true;
+
+        case MESSAGE_TYPES.getFormContext:
+          sendResponse(getFormContext());
+          return true;
+
+        case MESSAGE_TYPES.getCommunityContext:
+          sendResponse(getPageContext());
+          return true;
+
+        case MESSAGE_TYPES.openAssistPanel:
+          renderAssistPanel(message.payload || { state: "loading" });
+          sendResponse({ ok: true });
+          return true;
+
+        case MESSAGE_TYPES.showAiResult:
+          renderAssistPanel({ ...(message.payload || {}), state: "result" });
+          sendResponse({ ok: true });
+          return true;
+
+        case MESSAGE_TYPES.showAiError:
+          renderAssistPanel({ ...(message.payload || {}), state: "error" });
+          sendResponse({ ok: true });
+          return true;
+
+        case MESSAGE_TYPES.closeAssistPanel:
+          hideAssistPanel();
+          sendResponse({ ok: true });
+          return true;
+
+        default:
+          return false;
+      }
+    } catch (error) {
+      if (isExtensionContextInvalidationError(error)) {
+        handleExtensionContextInvalidation();
+        sendResponse({ ok: false });
+        return true;
+      }
+
+      throw error;
+    }
+  });
+
+  async function initialize() {
+    if (!isExtensionContextAvailable()) {
+      handleExtensionContextInvalidation();
+      return;
+    }
+
+    const [settingsResponse, localResponse] = await Promise.all([
+      sendRuntimeMessage({ type: MESSAGE_TYPES.getSettings }),
+      sendRuntimeMessage({ type: MESSAGE_TYPES.getLocalSettings })
+    ]);
+
+    if (!extensionContextAvailable) return;
+
+    syncSettings = normalizeSettings(settingsResponse?.settings);
+    siteOverrides = normalizeSiteOverrides(localResponse?.settings?.siteOverrides);
+    refreshPageClassification();
+    apply();
+
+    try {
+      chrome.storage.onChanged.addListener((changes, areaName) => {
+        if (!extensionContextAvailable) return;
+
+        if (areaName === "sync") {
+          for (const [key, change] of Object.entries(changes)) {
+            syncSettings[key] = change.newValue;
+          }
+          syncSettings = normalizeSettings(syncSettings);
+          apply();
+        }
+
+        if (areaName === "local" && changes.siteOverrides) {
+          siteOverrides = normalizeSiteOverrides(changes.siteOverrides.newValue);
+          apply();
+        }
+      });
+    } catch {
+      handleExtensionContextInvalidation();
+      return;
+    }
+
+    document.addEventListener("readystatechange", () => {
+      if (document.readyState === lastReadyState) return;
+      lastReadyState = document.readyState;
+      if (document.readyState !== "interactive" && document.readyState !== "complete") return;
+      refreshPageClassification();
+      apply();
+    });
+  }
+
+  function apply() {
+    const override = getCurrentSiteOverride();
+    const effective = getEffectiveSettings(syncSettings, override);
+    const enabled = Boolean(effective.enabled && !override.disabled);
+    const sensitiveMode = currentSensitivePageKind !== SENSITIVE_PAGE_KINDS.none;
+    const themeActive = Boolean(enabled && !override.keepOriginalColors && !sensitiveMode);
+    const forceLight = Boolean(themeActive && effective.themePreset !== "soft-dark");
+
+    root.dataset.asdProfile = currentProfile;
+    root.dataset.asdCommunitySubtype = currentCommunitySubtype;
+    if (sensitiveMode) {
+      root.dataset.asdSensitiveKind = currentSensitivePageKind;
+    } else {
+      delete root.dataset.asdSensitiveKind;
+    }
+    root.toggleAttribute("data-asd-foundation", enabled);
+    root.toggleAttribute("data-asd-force-light", forceLight);
+    root.toggleAttribute("data-asd-motion-off", enabled && effective.reduceMotion);
+    root.toggleAttribute("data-asd-font", enabled && effective.readableFontEnabled);
+    root.toggleAttribute("data-asd-ad-removal", enabled && effective.adRemovalEnabled);
+    root.toggleAttribute("data-asd-reduce-contrast", enabled && effective.reduceContrastEnabled);
+    root.toggleAttribute("data-asd-reader", enabled && effective.readerMode && currentProfile === PAGE_PROFILES.reader);
+    root.toggleAttribute(
+      "data-asd-community-assist",
+      enabled && effective.communityAssistEnabled && currentProfile === PAGE_PROFILES.community
+    );
+    root.toggleAttribute("data-asd-ai-gentle", enabled && effective.aiHelperEnabled && effective.aiGentleSuggestions);
+    root.toggleAttribute("data-asd-image-softening", enabled && effective.imageSofteningEnabled);
+    root.setAttribute("data-asd-theme", themeActive ? effective.themePreset : "original");
+    root.setAttribute("data-asd-density", effective.pageDensity);
+    root.style.setProperty("--asd-text-scale", `${clampInteger(effective.textScale, 80, 140, 100)}%`);
+    root.style.setProperty("--asd-line-height", String(clampNumber(effective.lineHeight, 1.4, 2.1, 1.7)));
+    root.style.setProperty("--asd-image-softening-blur", resolveImageSofteningBlur(effective.imageSofteningStrength));
+
+    const theme = THEMES[effective.themePreset] || THEMES["soft-light"];
+    root.style.setProperty("--asd-base-bg", theme.bg);
+    root.style.setProperty("--asd-base-fg", theme.fg);
+    root.style.setProperty("--asd-base-surface", theme.surface);
+    root.style.setProperty("--asd-base-accent", theme.accent);
+    root.style.setProperty("--asd-bg", theme.bg);
+    root.style.setProperty("--asd-fg", theme.fg);
+    root.style.setProperty("--asd-fg-on-dark", theme.fgOnDark || "#f3f5f7");
+    root.style.setProperty("--asd-surface", theme.surface);
+    root.style.setProperty("--asd-accent", theme.accent);
+    root.style.setProperty("--asd-accent-on-dark", theme.accentOnDark || theme.accent);
+    root.style.setProperty("--asd-muted", theme.muted || "#5f686f");
+    root.style.setProperty("--asd-border", theme.border || "rgba(63, 111, 143, 0.24)");
+
+    if (enabled && effective.muteAutoplay) pauseAutoplayMedia();
+    syncAdRemoval(enabled && effective.adRemovalEnabled);
+    syncBackgroundImageSoftening(enabled && effective.imageSofteningEnabled);
+    if (IS_TOP_FRAME) {
+      syncReadingRuler(enabled && effective.readingRuler);
+      syncActiveIndicator(enabled && effective.showActiveStateIndicator, currentProfile);
+    }
+    syncKnownSiteThemeBridge(themeActive, effective.themePreset);
+    syncContrastFix(themeActive);
+    if (IS_TOP_FRAME) syncAssistUiAppearance();
+  }
+
+  function refreshPageClassification() {
+    currentSensitivePageKind = detectSensitivePageKind({
+      url: location.href,
+      title: document.title || "",
+      visibleText: document.body?.innerText || ""
+    });
+
+    const communityProfile = detectCommunityProfile();
+    const formProfile = detectFormProfile({ communityMatched: communityProfile.matched });
+    if (formProfile.matched) {
+      currentProfile = PAGE_PROFILES.form;
+      currentCommunitySubtype = COMMUNITY_SUBTYPES.none;
+      return;
+    }
+
+    if (communityProfile.matched) {
+      currentProfile = PAGE_PROFILES.community;
+      currentCommunitySubtype = communityProfile.subtype;
+      return;
+    }
+
+    if (detectReaderProfile()) {
+      currentProfile = PAGE_PROFILES.reader;
+      currentCommunitySubtype = COMMUNITY_SUBTYPES.none;
+      return;
+    }
+
+    if (detectPortalProfile()) {
+      currentProfile = PAGE_PROFILES.portal;
+      currentCommunitySubtype = COMMUNITY_SUBTYPES.none;
+      return;
+    }
+
+    currentProfile = PAGE_PROFILES.generic;
+    currentCommunitySubtype = COMMUNITY_SUBTYPES.none;
+  }
+
+  function getEffectiveSettings(settings, override) {
+    const normalized = normalizeSettings({
+      ...settings,
+      readableFontEnabled: override.keepOriginalFonts ? false : settings.readableFontEnabled,
+      reduceContrastEnabled: override.disableContrastReduction ? false : settings.reduceContrastEnabled,
+      adRemovalEnabled: override.allowAds ? false : settings.adRemovalEnabled,
+      muteAutoplay: override.allowAutoplay ? false : settings.muteAutoplay,
+      readerMode: override.disableReaderMode ? false : settings.readerMode,
+      communityAssistEnabled: override.disableCommunityAssist ? false : settings.communityAssistEnabled,
+      aiGentleSuggestions: override.disableAiSuggestions ? false : settings.aiGentleSuggestions,
+      imageSofteningEnabled: override.disableImageSoftening ? false : settings.imageSofteningEnabled
+    });
+
+    if (currentSensitivePageKind === SENSITIVE_PAGE_KINDS.none) {
+      return normalized;
+    }
+
+    return normalizeSettings({
+      ...normalized,
+      themePreset: DEFAULT_SETTINGS.themePreset,
+      textScale: DEFAULT_SETTINGS.textScale,
+      lineHeight: DEFAULT_SETTINGS.lineHeight,
+      pageDensity: DEFAULT_SETTINGS.pageDensity,
+      readableFontEnabled: false,
+      reduceContrastEnabled: false,
+      readerMode: false,
+      communityAssistEnabled: false,
+      adRemovalEnabled: false,
+      imageSofteningEnabled: false
+    });
+  }
+
+  function detectReaderProfile() {
+    const article = document.querySelector("article, main, [role='main']");
+    if (!article) return false;
+
+    const paragraphs = article.querySelectorAll("p").length;
+    const textLength = normalizeText(article.innerText || "", 6000).length;
+    return paragraphs >= 4 && textLength >= 1200;
+  }
+
+  function detectPortalProfile() {
+    const bodyText = normalizeText(document.body?.innerText || "", 6000);
+    const links = document.querySelectorAll("a[href]").length;
+    const lists = document.querySelectorAll("ul, ol, nav, section").length;
+    const linkDensity = links / Math.max(bodyText.length / 180, 1);
+    return links >= 60 && lists >= 8 && linkDensity >= 1.2;
+  }
+
+  function detectCommunityProfile() {
+    const host = location.hostname.toLowerCase();
+    const bodyText = normalizeText(document.body?.innerText || "", 4000);
+    const linkCount = document.querySelectorAll("a[href]").length;
+    const commentLikeCount = document.querySelectorAll(
+      '[class*="comment" i], [id*="comment" i], [class*="reply" i], [id*="reply" i], shreddit-comment'
+    ).length;
+    const hasKnownHost =
+      host.includes("reddit.com") ||
+      host.includes("dcinside.com") ||
+      host.includes("ruliweb.com") ||
+      host.includes("clien.net") ||
+      host.includes("fmkorea.com");
+    const hasCommunityHints = /\b(board|forum|gallery|subreddit|thread|comment|reply|vote|post)\b/i.test(bodyText);
+
+    if (!hasKnownHost && !((commentLikeCount >= 5 || linkCount >= 80) && hasCommunityHints)) {
+      return { matched: false, subtype: COMMUNITY_SUBTYPES.none };
+    }
+
+    return {
+      matched: true,
+      subtype: detectCommunitySubtype()
+    };
+  }
+
+  function detectCommunitySubtype() {
+    const commentCount = document.querySelectorAll(
+      'shreddit-comment, [class*="comment" i], [id*="comment" i], [class*="reply" i], [id*="reply" i]'
+    ).length;
+    const articleCount = document.querySelectorAll("article, [role='article'], [data-testid='post-container']").length;
+    const listLikeCount = document.querySelectorAll("li, tr, article").length;
+
+    if (commentCount >= 6 && articleCount >= 1) return COMMUNITY_SUBTYPES.thread;
+    if (commentCount >= 6) return COMMUNITY_SUBTYPES.commentSection;
+    if (articleCount >= 8) return COMMUNITY_SUBTYPES.feed;
+    if (listLikeCount >= 20) return COMMUNITY_SUBTYPES.boardList;
+    return COMMUNITY_SUBTYPES.feed;
+  }
+
+  function detectFormProfile({ communityMatched = false } = {}) {
+    const href = `${location.href} ${document.title}`.toLowerCase();
+    const forms = [...document.querySelectorAll("form")];
+    const visibleForms = forms.filter((form) => countExplainableFields(form) >= 2);
+    const sensitiveFields = [...document.querySelectorAll(
+      [
+        'input[type="password"]',
+        'input[autocomplete*="password" i]',
+        'input[autocomplete*="cc-" i]',
+        'input[name*="password" i]',
+        'input[name*="card" i]',
+        'input[name*="birth" i]',
+        'input[name*="passport" i]',
+        'input[name*="license" i]',
+        'input[name*="주민" i]'
+      ].join(",")
+    )].filter((field) => isVisibleElement(field) && !(communityMatched && isCommunityRoutineField(field)));
+    const candidateForms = communityMatched ? visibleForms.filter((form) => !isCommunityRoutineForm(form)) : visibleForms;
+    const taskHints = /\b(login|signin|sign-in|signup|register|checkout|payment|billing|apply|password|account|security|verify)\b|로그인|가입|결제|신청|비밀번호|본인\s*(인증|확인)/i;
+    const uploadTaskHints =
+      /\b(upload|attach|attachment|choose file|select file|file picker|apply|verify|submit document|id photo|passport photo)\b|\uC5C5\uB85C\uB4DC|\uCCA8\uBD80|\uD30C\uC77C\s*(\uC120\uD0DD|\uC81C\uCD9C)|\uC2E0\uCCAD|\uBCF8\uC778\s*(\uC778\uC99D|\uD655\uC778)|\uC2E0\uBD84\uC99D|\uC5EC\uAD8C/i;
+    const taskForm = candidateForms.find((form) => {
+      const formText = normalizeText(
+        [
+          form.innerText,
+          [...form.querySelectorAll("input, textarea, select")]
+            .map((control) =>
+              [
+                control.getAttribute("aria-label") || "",
+                control.getAttribute("placeholder") || "",
+                control.getAttribute("name") || ""
+              ].join(" ")
+            )
+            .join(" "),
+          [...form.querySelectorAll("button, input[type='submit'], input[type='button']")]
+            .map((control) => control.innerText || control.value || control.getAttribute("aria-label") || "")
+            .join(" ")
+        ].join(" "),
+        1000
+      );
+      const hasPasswordField = Boolean(form.querySelector('input[type="password"], input[autocomplete*="password" i]'));
+      const hasFileUploadTask = Boolean(form.querySelector('input[type="file"]')) && uploadTaskHints.test(`${href} ${formText}`);
+      return taskHints.test(formText) || hasPasswordField || hasFileUploadTask;
+    });
+
+    return {
+      matched: Boolean(sensitiveFields.length > 0 || taskForm || (candidateForms.length > 0 && taskHints.test(href)))
+    };
+  }
+
+  function isCommunityRoutineForm(form) {
+    if (!(form instanceof Element)) return false;
+
+    const marker = normalizeText(
+      [
+        form.id || "",
+        form.className || "",
+        form.getAttribute("role") || "",
+        form.getAttribute("aria-label") || "",
+        form.getAttribute("action") || ""
+      ].join(" "),
+      1000
+    );
+    const controlText = normalizeText(
+      [
+        form.innerText || "",
+        [...form.querySelectorAll("input, textarea, select")]
+          .map((control) =>
+            [
+              control.getAttribute("aria-label") || "",
+              control.getAttribute("placeholder") || "",
+              control.getAttribute("name") || "",
+              control.getAttribute("id") || ""
+            ].join(" ")
+          )
+          .join(" "),
+        [...form.querySelectorAll("button, input[type='submit'], input[type='button']")]
+          .map((control) => control.innerText || control.value || control.getAttribute("aria-label") || "")
+          .join(" ")
+      ].join(" "),
+      1600
+    );
+    const haystack = `${marker} ${controlText}`;
+    return hasCommunityRoutineHints(haystack) && !hasHighRiskFormHints(haystack);
+  }
+
+  function isCommunityRoutineField(field) {
+    if (!(field instanceof Element)) return false;
+    if (isCommunityRoutineForm(field.closest("form"))) return true;
+
+    const container = field.closest(
+      '[class*="comment" i], [id*="comment" i], [class*="reply" i], [id*="reply" i], [class*="cmt" i], [id*="cmt" i], .view_comment, .cmt_write_box'
+    );
+    if (!(container instanceof Element)) return false;
+
+    const haystack = normalizeText(
+      [
+        field.id || "",
+        field.className || "",
+        field.getAttribute("name") || "",
+        field.getAttribute("placeholder") || "",
+        field.getAttribute("aria-label") || "",
+        container.id || "",
+        container.className || "",
+        container.innerText || container.textContent || ""
+      ].join(" "),
+      1600
+    );
+    return hasCommunityRoutineHints(haystack) && !hasHighRiskFormHints(haystack);
+  }
+
+  function hasCommunityRoutineHints(value) {
+    return /(^|[\s_-])(comment|reply|search|keyword|filter|sort|login|signin|sign-in|nickname|memo|captcha|write|post|sch|q|search_type|search_keyword|s_keyword|cmt)([\s_-]|$)|\uB313\uAE00|\uB2F5\uAE00|\uAC80\uC0C9|\uB85C\uADF8\uC778|\uB2C9\uB124\uC784|\uBE44\uBC00\uBC88\uD638|\uCCA8\uBD80|\uD30C\uC77C|\uC791\uC131|\uB4F1\uB85D|\uAE00\uC4F0\uAE30/i.test(
+      value
+    );
+  }
+
+  function hasHighRiskFormHints(value) {
+    return /\b(checkout|payment|billing|credit card|card number|apply|verify identity|passport|driver license|ssn|security settings|change password)\b|\uACB0\uC81C|\uCE74\uB4DC|\uACC4\uC88C|\uC2E0\uCCAD|\uBCF8\uC778\s*(\uC778\uC99D|\uD655\uC778)|\uC2E0\uBD84\uC99D|\uC5EC\uAD8C|\uC8FC\uBBFC\uB4F1\uB85D|\uBCF4\uC548|\uBE44\uBC00\uBC88\uD638\s*\uBCC0\uACBD/i.test(
+      value
+    );
+  }
+
+  function detectSensitivePageKind({ url = "", title = "", visibleText = "" } = {}) {
+    const pageHaystack = `${url} ${title}`.slice(0, 1000);
+    const visibleHaystack = String(visibleText || "").slice(0, 4000);
+    for (const [kind, pagePattern, visiblePattern] of SENSITIVE_PATTERNS) {
+      if (pagePattern.test(pageHaystack) || visiblePattern.test(visibleHaystack)) return kind;
+    }
+    return SENSITIVE_PAGE_KINDS.none;
+  }
+
+  function syncContrastFix(shouldEnable) {
+    if (!shouldEnable) {
+      stopContrastObserver();
+      clearContrastFixes();
+      return;
+    }
+
+    scheduleContrastFix();
+    startContrastObserver();
+  }
+
+  function syncKnownSiteThemeBridge(themeActive, themePreset) {
+    onBodyReady(() => {
+      const body = document.body;
+      if (!(body instanceof HTMLBodyElement)) return;
+      if (!supportsTheSeedThemeBridge(body)) return;
+
+      themeBridgeState = themeBridgeState || {
+        hadDarkMode: body.classList.contains("theseed-dark-mode"),
+        hadLightMode: body.classList.contains("theseed-light-mode")
+      };
+
+      if (!themeActive) {
+        restoreKnownSiteThemeBridge(body);
+        return;
+      }
+
+      if (themePreset === "soft-dark") {
+        body.classList.remove("theseed-light-mode");
+        body.classList.add("theseed-dark-mode");
+        return;
+      }
+
+      body.classList.remove("theseed-dark-mode");
+      body.classList.add("theseed-light-mode");
+    });
+  }
+
+  function restoreKnownSiteThemeBridge(body) {
+    if (!themeBridgeState) return;
+
+    body.classList.toggle("theseed-dark-mode", Boolean(themeBridgeState.hadDarkMode));
+    body.classList.toggle("theseed-light-mode", Boolean(themeBridgeState.hadLightMode));
+  }
+
+  function supportsTheSeedThemeBridge(body) {
+    return (
+      location.hostname.endsWith("namu.wiki") ||
+      body.classList.contains("theseed-dark-mode") ||
+      body.classList.contains("theseed-light-mode")
+    );
+  }
+
+  function scheduleContrastFix() {
+    if (contrastFixPending) return;
+    contrastFixPending = true;
+
+    clearTimeout(contrastFixTimer);
+    contrastFixTimer = setTimeout(() => {
+      contrastFixPending = false;
+      contrastFixTimer = null;
+      applyContrastFixes();
+    }, 180);
+  }
+
+  function startContrastObserver() {
+    if (contrastObserver || !document.documentElement) return;
+
+    contrastObserver = new MutationObserver((records) => {
+      for (const record of records) {
+        if (record.type === "childList" && record.addedNodes.length > 0) {
+          scheduleContrastFix();
+          return;
+        }
+      }
+    });
+
+    contrastObserver.observe(document.documentElement, {
+      childList: true,
+      subtree: true
+    });
+  }
+
+  function stopContrastObserver() {
+    if (!contrastObserver) return;
+    contrastObserver.disconnect();
+    contrastObserver = null;
+    clearTimeout(contrastFixTimer);
+    contrastFixTimer = null;
+    contrastFixPending = false;
+  }
+
+  function applyContrastFixes() {
+    clearContrastFixes();
+
+    const scanRoot = document.body || document.documentElement;
+
+    if (!(scanRoot instanceof Element)) return;
+
+    const textSelectors = [
+      "h1",
+      "h2",
+      "h3",
+      "h4",
+      "h5",
+      "h6",
+      "p",
+      "li",
+      "label",
+      "small",
+      "strong",
+      "em",
+      "blockquote",
+      "figcaption",
+      "td",
+      "th",
+      "caption",
+      "summary",
+      "span",
+      "div",
+      "a"
+    ].join(",");
+
+    const candidates = scanRoot.matches(textSelectors)
+      ? [scanRoot, ...scanRoot.querySelectorAll(textSelectors)]
+      : [...scanRoot.querySelectorAll(textSelectors)];
+
+    for (const element of candidates.slice(0, 800)) {
+      if (!(element instanceof Element)) continue;
+      if (isExtensionUiElement(element) || !isVisibleElement(element)) continue;
+      if (!hasReadableText(element)) continue;
+
+      const style = getComputedStyle(element);
+      const foreground = parseCssColor(style.color);
+      const background = resolveRenderedBackground(element);
+      if (!foreground || !background) continue;
+
+      if (contrastRatio(foreground, background) >= 4.35) continue;
+      element.setAttribute(
+        CONTRAST_FIX_ATTR,
+        relativeLuminance(background) < 0.24 ? "dark-bg" : "light-bg"
+      );
+    }
+  }
+
+  function clearContrastFixes() {
+    document.querySelectorAll(`[${CONTRAST_FIX_ATTR}]`).forEach((element) => {
+      element.removeAttribute(CONTRAST_FIX_ATTR);
+    });
+  }
+
+  function pauseAutoplayMedia() {
+    document.querySelectorAll("audio, video").forEach((media) => {
+      if (!media.autoplay && !media.muted) return;
+      try {
+        media.pause();
+        media.muted = true;
+      } catch {}
+    });
+  }
+
+  function syncAdRemoval(shouldEnable) {
+    if (adRemovalEnabled === shouldEnable) return;
+    adRemovalEnabled = shouldEnable;
+
+    if (!shouldEnable) {
+      stopAdObserver();
+      restoreAdCandidates();
+      return;
+    }
+
+    scanAdCandidates(document);
+    startAdObserver();
+  }
+
+  function startAdObserver() {
+    if (adObserver || !document.documentElement) return;
+    adObserver = new MutationObserver((records) => {
+      for (const record of records) {
+        for (const node of record.addedNodes) {
+          if (node instanceof Element) {
+            scheduleAdScan();
+            return;
+          }
+        }
+      }
+    });
+    adObserver.observe(document.documentElement, { childList: true, subtree: true });
+  }
+
+  function stopAdObserver() {
+    if (!adObserver) return;
+    adObserver.disconnect();
+    adObserver = null;
+    clearTimeout(adScanTimer);
+    adScanTimer = null;
+    adScanPending = false;
+  }
+
+  function syncBackgroundImageSoftening(shouldEnable) {
+    if (backgroundImageSofteningEnabled === shouldEnable) return;
+    backgroundImageSofteningEnabled = shouldEnable;
+
+    if (!shouldEnable) {
+      stopBackgroundImageObserver();
+      restoreBackgroundImageCandidates();
+      return;
+    }
+
+    scanBackgroundImageCandidates(document);
+    startBackgroundImageObserver();
+  }
+
+  function startBackgroundImageObserver() {
+    if (backgroundImageObserver || !document.documentElement) return;
+    backgroundImageObserver = new MutationObserver((records) => {
+      for (const record of records) {
+        if (record.type === "attributes" || record.addedNodes.length > 0) {
+          scheduleBackgroundImageScan();
+          return;
+        }
+      }
+    });
+    backgroundImageObserver.observe(document.documentElement, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ["class", "style", "role", "aria-label"]
+    });
+  }
+
+  function stopBackgroundImageObserver() {
+    if (!backgroundImageObserver) return;
+    backgroundImageObserver.disconnect();
+    backgroundImageObserver = null;
+    clearTimeout(backgroundImageScanTimer);
+    backgroundImageScanTimer = null;
+    backgroundImageScanPending = false;
+  }
+
+  function scheduleBackgroundImageScan() {
+    if (backgroundImageScanPending) return;
+    backgroundImageScanPending = true;
+    clearTimeout(backgroundImageScanTimer);
+    backgroundImageScanTimer = setTimeout(() => {
+      backgroundImageScanPending = false;
+      backgroundImageScanTimer = null;
+      if (!backgroundImageSofteningEnabled || !document.documentElement) return;
+      scanBackgroundImageCandidates(document);
+    }, 260);
+  }
+
+  function scanBackgroundImageCandidates(scope) {
+    if (!scope?.querySelectorAll) return;
+
+    const candidates = new Set();
+    if (scope instanceof Element && isBackgroundImageCandidate(scope)) {
+      candidates.add(scope);
+    }
+
+    scope.querySelectorAll(BACKGROUND_IMAGE_CANDIDATE_SELECTOR).forEach((element) => {
+      if (isBackgroundImageCandidate(element)) candidates.add(element);
+    });
+
+    candidates.forEach(markBackgroundImageCandidate);
+  }
+
+  function isBackgroundImageCandidate(element) {
+    if (!(element instanceof Element)) return false;
+    if (element === document.documentElement || element === document.body) return false;
+    if (isExtensionUiElement(element)) return false;
+    if (element.hasAttribute(BACKGROUND_IMAGE_SOFTEN_ATTR)) return false;
+    if (element.closest("form, input, textarea, select, button, [contenteditable='true']")) return false;
+    if (element.querySelector("input, textarea, select, button, video, iframe, [contenteditable='true']")) return false;
+
+    const rect = element.getBoundingClientRect();
+    if (rect.width < 80 || rect.height < 80) return false;
+    if (rect.width > window.innerWidth * 0.98 && rect.height > window.innerHeight * 0.85) return false;
+
+    const text = normalizeText(element.innerText || element.textContent || "", 80);
+    if (text.length > 24) return false;
+
+    return /\burl\(/i.test(getBackgroundImageForSoftening(element));
+  }
+
+  function markBackgroundImageCandidate(element) {
+    const style = getComputedStyle(element);
+    const backgroundImage = getBackgroundImageForSoftening(element);
+    if (!/\burl\(/i.test(backgroundImage)) return;
+
+    element.setAttribute(BACKGROUND_IMAGE_SOFTEN_ATTR, "1");
+    element.style.setProperty("--asd-background-softening-image", backgroundImage);
+    element.style.setProperty("--asd-background-softening-size", style.backgroundSize || "cover");
+    element.style.setProperty("--asd-background-softening-position", style.backgroundPosition || "center");
+    element.style.setProperty("--asd-background-softening-repeat", style.backgroundRepeat || "no-repeat");
+  }
+
+  function getBackgroundImageForSoftening(element) {
+    const style = getComputedStyle(element);
+    const computedBackgroundImage = style.backgroundImage || "";
+    if (/\burl\(/i.test(computedBackgroundImage)) return computedBackgroundImage;
+    return element.style?.backgroundImage || "";
+  }
+
+  function restoreBackgroundImageCandidates() {
+    document.querySelectorAll(`[${BACKGROUND_IMAGE_SOFTEN_ATTR}]`).forEach((element) => {
+      element.removeAttribute(BACKGROUND_IMAGE_SOFTEN_ATTR);
+      element.style.removeProperty("--asd-background-softening-image");
+      element.style.removeProperty("--asd-background-softening-size");
+      element.style.removeProperty("--asd-background-softening-position");
+      element.style.removeProperty("--asd-background-softening-repeat");
+    });
+  }
+
+  function scheduleAdScan() {
+    if (adScanPending) return;
+    adScanPending = true;
+    clearTimeout(adScanTimer);
+    adScanTimer = setTimeout(() => {
+      adScanPending = false;
+      adScanTimer = null;
+      if (!adRemovalEnabled || !document.documentElement) return;
+      scanAdCandidates(document);
+    }, 220);
+  }
+
+  function scanAdCandidates(scope) {
+    if (!scope?.querySelectorAll) return;
+
+    const candidates = new Set();
+    if (scope instanceof Element && isLikelyAdElement(scope)) {
+      candidates.add(scope);
+    }
+
+    scope.querySelectorAll(AD_CANDIDATE_SELECTOR).forEach((element) => {
+      candidates.add(resolveAdContainer(element));
+    });
+
+    scope.querySelectorAll("[id], [class], [role]").forEach((element) => {
+      if (isLikelyAdElement(element)) {
+        candidates.add(resolveAdContainer(element));
+      }
+    });
+
+    syncAdRestoreControls();
+    candidates.forEach(markAdCandidate);
+    syncAdRestoreControls();
+  }
+
+  function resolveAdContainer(element) {
+    let current = element;
+    for (let depth = 0; depth < 3; depth += 1) {
+      const parent = current?.parentElement;
+      if (!parent || parent === document.body || parent === document.documentElement) break;
+      if (isProtectedContent(parent)) break;
+      if (isLikelyAdElement(parent) || isSmallPeripheralBlock(parent)) {
+        current = parent;
+      }
+    }
+    return current;
+  }
+
+  function markAdCandidate(element) {
+    if (!(element instanceof Element)) return;
+    if (isProtectedContent(element)) return;
+    if (element.hasAttribute("data-asd-ad-collapsed")) return;
+    if (element.closest("[data-asd-ad-collapsed]")) return;
+    if (element.querySelector("[data-asd-ad-collapsed]")) return;
+
+    const collapseId = `asd-ad-${collapsedAdIdCounter += 1}`;
+    const control = createCollapsedAdControl(element, collapseId);
+    element.setAttribute("data-asd-ad-collapse-id", collapseId);
+    element.setAttribute("data-asd-ad-collapsed", "1");
+    element.setAttribute("data-asd-original-hidden", element.hidden ? "1" : "0");
+    element.setAttribute("data-asd-original-aria-hidden", element.getAttribute("aria-hidden") || "");
+    element.setAttribute("aria-hidden", "true");
+    element.hidden = true;
+
+    element.before(control);
+  }
+
+  function syncAdRestoreControls() {
+    const collapsedElements = [...document.querySelectorAll("[data-asd-ad-collapsed]")];
+    const collapsedIds = new Set();
+
+    collapsedElements.forEach((element) => {
+      let collapseId = element.getAttribute("data-asd-ad-collapse-id");
+      if (!collapseId) {
+        collapseId = `asd-ad-${collapsedAdIdCounter += 1}`;
+        element.setAttribute("data-asd-ad-collapse-id", collapseId);
+      }
+
+      collapsedIds.add(collapseId);
+      const control = document.querySelector(
+        `[data-asd-ad-restore-button][data-asd-ad-restore-for="${escapeSelector(collapseId)}"]`
+      );
+      if (!control) element.before(createCollapsedAdControl(element, collapseId));
+    });
+
+    document.querySelectorAll("[data-asd-ad-restore-button]").forEach((control) => {
+      const collapseId = control.getAttribute("data-asd-ad-restore-for");
+      if (!collapseId || !collapsedIds.has(collapseId)) control.remove();
+    });
+  }
+
+  function restoreAdCandidates() {
+    document.querySelectorAll("[data-asd-ad-collapsed]").forEach((element) => {
+      restoreAdCandidate(element);
+    });
+    document.querySelectorAll("[data-asd-ad-restore-button]").forEach((element) => {
+      element.remove();
+    });
+  }
+
+  function createCollapsedAdControl(element, collapseId = "") {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.setAttribute("data-asd-ad-restore-button", "1");
+    if (collapseId) button.setAttribute("data-asd-ad-restore-for", collapseId);
+    button.textContent = getCollapsedAdText();
+    button.addEventListener("click", () => restoreAdCandidate(element, button));
+    return button;
+  }
+
+  function restoreAdCandidate(element, control = null) {
+    if (!(element instanceof Element)) return;
+
+    const originalHidden = element.getAttribute("data-asd-original-hidden") === "1";
+    const originalAriaHidden = element.getAttribute("data-asd-original-aria-hidden") || "";
+
+    element.removeAttribute("data-asd-ad-collapsed");
+    element.removeAttribute("data-asd-ad-collapse-id");
+    element.removeAttribute("data-asd-original-hidden");
+    element.removeAttribute("data-asd-original-aria-hidden");
+    element.hidden = originalHidden;
+
+    if (originalAriaHidden) {
+      element.setAttribute("aria-hidden", originalAriaHidden);
+    } else {
+      element.removeAttribute("aria-hidden");
+    }
+
+    if (control instanceof Element) {
+      control.remove();
+    } else {
+      const previous = element.previousElementSibling;
+      if (previous?.matches("[data-asd-ad-restore-button]")) previous.remove();
+    }
+  }
+
+  function getCollapsedAdText() {
+    return resolveLocale(syncSettings.uiLanguage) === "ko"
+      ? "접힌 방해 요소 보기"
+      : "Show collapsed distraction";
+  }
+
+  function isLikelyAdElement(element) {
+    if (!(element instanceof Element)) return false;
+    if (isProtectedContent(element)) return false;
+
+    const marker = [
+      element.id,
+      element.className,
+      element.getAttribute("role"),
+      element.getAttribute("aria-label"),
+      element.getAttribute("data-testid"),
+      element.getAttribute("data-ad"),
+      element.getAttribute("data-ad-slot"),
+      element.getAttribute("data-ad-client")
+    ]
+      .filter(Boolean)
+      .join(" ");
+
+    return AD_MARKER_PATTERN.test(marker);
+  }
+
+  function isProtectedContent(element) {
+    return Boolean(
+      element.closest(
+        "main, article, form, [role=\"main\"], [role=\"article\"], [contenteditable=\"true\"], .asd-foundation-indicator, .asd-foundation-ruler"
+      ) &&
+        !element.matches(AD_CANDIDATE_SELECTOR) &&
+        !AD_MARKER_PATTERN.test([element.id, element.className, element.getAttribute("aria-label")].filter(Boolean).join(" "))
+    );
+  }
+
+  function isSmallPeripheralBlock(element) {
+    const rect = element.getBoundingClientRect();
+    if (!rect.width || !rect.height) return false;
+    if (rect.width > window.innerWidth * 0.9 && rect.height > window.innerHeight * 0.45) return false;
+    return rect.height <= 360 || rect.width <= 420;
+  }
+
+  function syncReadingRuler(shouldEnable) {
+    if (rulerEnabled === shouldEnable) return;
+    rulerEnabled = shouldEnable;
+
+    if (!shouldEnable) {
+      document.removeEventListener("mousemove", moveRuler);
+      if (ruler) ruler.hidden = true;
+      return;
+    }
+
+    onBodyReady(() => {
+      ruler = ruler || createRuler();
+      ruler.hidden = false;
+      document.addEventListener("mousemove", moveRuler, { passive: true });
+    });
+  }
+
+  function createRuler() {
+    const element = document.createElement("div");
+    element.className = "asd-foundation-ruler";
+    element.hidden = true;
+    document.body.append(element);
+    return element;
+  }
+
+  function moveRuler(event) {
+    rulerPointerY = event.clientY;
+    if (rulerRafPending) return;
+    rulerRafPending = true;
+    requestAnimationFrame(() => {
+      rulerRafPending = false;
+      if (!ruler) return;
+      ruler.style.transform = `translateY(${Math.max(0, rulerPointerY - 18)}px)`;
+    });
+  }
+
+  function syncActiveIndicator(shouldShow, profile) {
+    if (!shouldShow) {
+      if (indicator) indicator.hidden = true;
+      return;
+    }
+
+    onBodyReady(() => {
+      indicator = indicator || createIndicator();
+      indicator.hidden = false;
+      indicator.textContent = currentSensitivePageKind === SENSITIVE_PAGE_KINDS.none
+        ? `ASD UI - ${profile}`
+        : `ASD UI - protected: ${currentSensitivePageKind}`;
+    });
+  }
+
+  function createIndicator() {
+    const element = document.createElement("div");
+    element.className = "asd-foundation-indicator";
+    element.setAttribute("role", "status");
+    document.body.append(element);
+    return element;
+  }
+
+  function getSelectionContext() {
+    const selection = window.getSelection();
+    const selectionText = normalizeText(selection?.toString() || "", 2000);
+    const range = selection && selection.rangeCount > 0 ? selection.getRangeAt(0) : null;
+    const rootNode = range ? getRangeContainer(range) : document.body;
+    const rawContext = rootNode?.innerText || rootNode?.textContent || document.body?.innerText || "";
+
+    return {
+      selectionText,
+      surroundingText: extractNearbyText(normalizeText(rawContext, 16000), selectionText),
+      pageTitle: document.title || "",
+      pageUrl: location.href,
+      pageLanguage: document.documentElement.lang || "",
+      browserLanguage: navigator.language || ""
+    };
+  }
+
+  function getPageContext() {
+    refreshPageClassification();
+
+    return {
+      pageTitle: document.title || "",
+      pageUrl: location.href,
+      pageProfile: currentProfile,
+      communitySubtype: currentCommunitySubtype,
+      visibleHeadings: collectVisibleTexts("h1, h2, h3, [role='heading']", 10, 120),
+      keyActions: collectKeyActions(),
+      importantTextSnippets: collectImportantTextSnippets(),
+      visibleCommunityItems: currentProfile === PAGE_PROFILES.community ? collectVisibleCommunityItems() : [],
+      browserLanguage: navigator.language || ""
+    };
+  }
+
+  function getFormContext() {
+    const form = findRelevantForm();
+    const warnings = form ? collectFormWarnings(form) : [];
+
+    return {
+      pageTitle: document.title || "",
+      pageUrl: location.href,
+      formTitle: form ? getFormTitle(form) : "",
+      fields: form ? collectFormFields(form) : [],
+      buttons: form ? collectFormButtons(form) : [],
+      warnings,
+      browserLanguage: navigator.language || ""
+    };
+  }
+
+  function getRangeContainer(range) {
+    let node = range.commonAncestorContainer;
+    if (node.nodeType === Node.TEXT_NODE) node = node.parentElement;
+    if (node instanceof Element) {
+      return node.closest("article, main, section, div, p, li, td, th, form") || node;
+    }
+    return document.body;
+  }
+
+  function extractNearbyText(sourceText, selectionText) {
+    if (!sourceText) return "";
+    if (!selectionText) return sourceText.slice(0, 900);
+
+    const index = sourceText.toLowerCase().indexOf(selectionText.toLowerCase());
+    if (index === -1) return sourceText.slice(0, 900);
+
+    const start = Math.max(0, index - 420);
+    const end = Math.min(sourceText.length, index + selectionText.length + 420);
+    return sourceText.slice(start, end);
+  }
+
+  function collectVisibleTexts(selector, maxItems, maxLength, scope = document) {
+    const elements = [...scope.querySelectorAll(selector)];
+    const result = [];
+    const seen = new Set();
+
+    for (const element of elements) {
+      if (!(element instanceof Element)) continue;
+      if (!isVisibleElement(element)) continue;
+
+      const text = normalizeText(element.innerText || element.textContent || "", maxLength);
+      if (text.length < 2) continue;
+
+      const key = text.toLowerCase();
+      if (seen.has(key)) continue;
+
+      seen.add(key);
+      result.push(text);
+
+      if (result.length >= maxItems) break;
+    }
+
+    return result;
+  }
+
+  function collectKeyActions() {
+    const candidates = [
+      ...document.querySelectorAll("button, input[type='submit'], input[type='button'], summary, [role='button'], a[href]")
+    ];
+    const result = [];
+    const seen = new Set();
+
+    for (const element of candidates) {
+      if (!(element instanceof Element)) continue;
+      if (!isVisibleElement(element)) continue;
+
+      const text = normalizeText(
+        element.innerText || element.getAttribute("value") || element.getAttribute("aria-label") || "",
+        120
+      );
+      if (!text || text.length > 80) continue;
+
+      const likelyAction =
+        element.matches("button, input[type='submit'], input[type='button'], summary, [role='button']") ||
+        /\b(sign|log|continue|next|submit|apply|checkout|pay|save|reply|post|search|join|start|open|view)\b/i.test(text) ||
+        element.closest("form");
+
+      if (!likelyAction) continue;
+
+      const key = text.toLowerCase();
+      if (seen.has(key)) continue;
+
+      seen.add(key);
+      result.push(text);
+      if (result.length >= 12) break;
+    }
+
+    return result;
+  }
+
+  function collectImportantTextSnippets() {
+    const target =
+      document.querySelector("main, article, form, [role='main']") ||
+      document.body ||
+      document.documentElement;
+    const elements = [...target.querySelectorAll("p, li, dd, dt, blockquote, h1, h2, h3, label, legend, td, th")];
+    const result = [];
+    const seen = new Set();
+
+    for (const element of elements) {
+      if (!(element instanceof Element)) continue;
+      if (!isVisibleElement(element)) continue;
+
+      const text = normalizeText(element.innerText || element.textContent || "", 280);
+      if (text.length < 40) continue;
+
+      const key = text.toLowerCase();
+      if (seen.has(key)) continue;
+
+      seen.add(key);
+      result.push(text);
+      if (result.length >= 10) break;
+    }
+
+    if (result.length === 0) {
+      const fallbackText = normalizeText(target.innerText || "", 280);
+      if (fallbackText) result.push(fallbackText);
+    }
+
+    return result;
+  }
+
+  function collectVisibleCommunityItems() {
+    const selectors = [
+      "[data-testid='post-container']",
+      "article",
+      "[role='article']",
+      "shreddit-comment",
+      ".comment_view",
+      ".reply",
+      "[class*='comment' i]",
+      "[id*='comment' i]",
+      "[class*='reply' i]",
+      "[id*='reply' i]"
+    ].join(",");
+
+    const result = [];
+    const seen = new Set();
+    const elements = [...document.querySelectorAll(selectors)];
+
+    for (let index = 0; index < elements.length; index += 1) {
+      const element = elements[index];
+      if (!(element instanceof Element)) continue;
+      if (!isVisibleElement(element)) continue;
+
+      const text = normalizeText(element.innerText || element.textContent || "", 300);
+      if (text.length < 20) continue;
+
+      const key = text.toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+
+      result.push({
+        kind: classifyCommunityItem(element),
+        text,
+        position: index + 1
+      });
+
+      if (result.length >= 12) break;
+    }
+
+    return result;
+  }
+
+  function classifyCommunityItem(element) {
+    if (element.matches("shreddit-comment, .reply, [class*='reply' i], [id*='reply' i]")) {
+      return "reply";
+    }
+
+    if (element.matches(".comment_view, [class*='comment' i], [id*='comment' i]")) {
+      return "comment";
+    }
+
+    if (element.matches("[data-testid='post-container'], article, [role='article']")) {
+      return "post";
+    }
+
+    return "metadata";
+  }
+
+  function findRelevantForm() {
+    const activeForm =
+      document.activeElement instanceof Element ? document.activeElement.closest("form") : null;
+    if (activeForm && countExplainableFields(activeForm) > 0) {
+      return activeForm;
+    }
+
+    const forms = [...document.querySelectorAll("form")];
+    const scored = forms
+      .map((form) => ({
+        form,
+        score: countExplainableFields(form) * 10 + countVisibleButtons(form) * 3 + (isVisibleElement(form) ? 5 : 0)
+      }))
+      .filter((item) => item.score > 0)
+      .sort((left, right) => right.score - left.score);
+
+    return scored[0]?.form || null;
+  }
+
+  function collectFormFields(form) {
+    const fields = [...form.querySelectorAll("input, select, textarea")];
+    const result = [];
+
+    for (const field of fields) {
+      if (!(field instanceof Element)) continue;
+      if (!isExplainableField(field)) continue;
+
+      const label = getFieldLabel(field);
+      const type = getFieldType(field);
+      const placeholder = normalizeText(field.getAttribute("placeholder") || "", 120);
+      const nearbyHelpText = getNearbyHelpText(field);
+      const required =
+        field.hasAttribute("required") ||
+        field.getAttribute("aria-required") === "true" ||
+        /\*/.test(label) ||
+        /\brequired\b/i.test(nearbyHelpText);
+
+      if (!label && !placeholder && !type) continue;
+
+      result.push({
+        label,
+        type,
+        required,
+        placeholder,
+        nearbyHelpText
+      });
+
+      if (result.length >= 20) break;
+    }
+
+    return result;
+  }
+
+  function collectFormButtons(form) {
+    return collectVisibleTexts("button, input[type='submit'], input[type='button']", 12, 80, form);
+  }
+
+  function collectFormWarnings(form) {
+    const selectors = [
+      "[role='alert']",
+      ".error",
+      ".warning",
+      ".notice",
+      ".help",
+      ".hint",
+      ".message",
+      "[aria-invalid='true']"
+    ].join(",");
+
+    const texts = collectVisibleTexts(selectors, 12, 180, form);
+    if (texts.length > 0) return texts;
+
+    return collectVisibleTexts("small, p, li, .description, .note", 8, 180, form).filter((text) =>
+      /\b(required|warning|privacy|agree|consent|password|verify|billing|payment|security|timeout)\b/i.test(text)
+    );
+  }
+
+  function getFormTitle(form) {
+    const ariaLabel = normalizeText(form.getAttribute("aria-label") || "", 160);
+    if (ariaLabel) return ariaLabel;
+
+    const labelledBy = form.getAttribute("aria-labelledby");
+    if (labelledBy) {
+      const text = normalizeText(
+        labelledBy
+          .split(/\s+/)
+          .map((id) => document.getElementById(id)?.innerText || "")
+          .join(" "),
+        160
+      );
+      if (text) return text;
+    }
+
+    const nearbyHeading = form.closest("section, article, main, div")?.querySelector("h1, h2, h3, legend");
+    return normalizeText(nearbyHeading?.innerText || "", 160);
+  }
+
+  function countExplainableFields(form) {
+    return [...form.querySelectorAll("input, select, textarea")].filter((field) => isExplainableField(field)).length;
+  }
+
+  function countVisibleButtons(form) {
+    return [...form.querySelectorAll("button, input[type='submit'], input[type='button']")].filter((element) =>
+      isVisibleElement(element)
+    ).length;
+  }
+
+  function isExplainableField(field) {
+    if (!(field instanceof Element)) return false;
+    if (!isVisibleElement(field)) return false;
+    if (field.matches("input[type='hidden'], input[type='image'], input[type='file'][hidden], [disabled]")) return false;
+    return true;
+  }
+
+  function getFieldLabel(field) {
+    const fieldId = field.getAttribute("id");
+    if (fieldId) {
+      const explicitLabel = document.querySelector(`label[for="${escapeSelector(fieldId)}"]`);
+      const text = normalizeText(explicitLabel?.innerText || "", 120);
+      if (text) return text;
+    }
+
+    const wrappingLabel = field.closest("label");
+    const wrappingText = normalizeText(wrappingLabel?.innerText || "", 120);
+    if (wrappingText) return wrappingText;
+
+    const ariaLabel = normalizeText(field.getAttribute("aria-label") || "", 120);
+    if (ariaLabel) return ariaLabel;
+
+    const row = field.closest("tr, li, .field, .form-group, .input-group, .control, div");
+    const nearbyLabel = normalizeText(row?.querySelector("label, legend, h1, h2, h3")?.innerText || "", 120);
+    return nearbyLabel;
+  }
+
+  function getFieldType(field) {
+    if (field instanceof HTMLTextAreaElement) return "textarea";
+    if (field instanceof HTMLSelectElement) return "select";
+    return normalizeText(field.getAttribute("type") || field.tagName.toLowerCase(), 40);
+  }
+
+  function getNearbyHelpText(field) {
+    const describedBy = field.getAttribute("aria-describedby") || "";
+    const describedText = normalizeText(
+      describedBy
+        .split(/\s+/)
+        .map((id) => document.getElementById(id)?.innerText || "")
+        .join(" "),
+      220
+    );
+    if (describedText) return describedText;
+
+    const wrapper = field.closest("label, fieldset, .field, .form-group, .input-group, .control, div");
+    if (!wrapper) return "";
+
+    const text = normalizeText(
+      [...wrapper.querySelectorAll("small, .hint, .help, .note, .description, .error, [role='alert']")]
+        .map((element) => element.innerText || element.textContent || "")
+        .join(" "),
+      220
+    );
+    return text;
+  }
+
+  function renderAssistPanel(payload) {
+    if (!isExtensionContextAvailable()) {
+      handleExtensionContextInvalidation();
+      return;
+    }
+    if (!IS_TOP_FRAME) return;
+
+    assistState.payload = payload;
+
+    try {
+      const ui = ensureAssistUi();
+      const text = getPanelText();
+      const wasHidden = ui.panel.hidden !== false;
+      syncAssistUiAppearance();
+
+      if (wasHidden && document.activeElement instanceof HTMLElement) {
+        previouslyFocusedElement = document.activeElement;
+      }
+
+      ui.panel.hidden = false;
+      ui.body.replaceChildren();
+
+      ui.badge.textContent =
+        payload.state === "loading" ? text.loading : payload.state === "error" ? text.issue : payload.model || text.helper;
+      ui.title.textContent = getPanelTitle(payload.requestType, text);
+      ui.close.textContent = text.close;
+
+      if (payload.state === "loading") {
+        ui.body.append(createMessage(payload.message || text.loadingFallback));
+        return;
+      }
+
+      if (payload.state === "error") {
+        ui.body.append(createMessage(payload.message || text.loadingFallback));
+        return;
+      }
+
+      appendResultSections(ui.body, payload.requestType, payload.response || {}, text);
+    } catch (error) {
+      if (isExtensionContextInvalidationError(error)) {
+        handleExtensionContextInvalidation();
+        return;
+      }
+
+      throw error;
+    }
+
+    if (assistUi && !assistUi.panel.hidden) {
+      try {
+        assistUi.panel.focus({ preventScroll: true });
+      } catch {
+        /* focus may fail if the panel is not yet rendered */
+      }
+    }
+  }
+
+  function hideAssistPanel() {
+    if (!assistUi) return;
+
+    try {
+      assistUi.panel.hidden = true;
+    } catch (error) {
+      if (isExtensionContextInvalidationError(error)) {
+        handleExtensionContextInvalidation();
+        return;
+      }
+
+      throw error;
+    }
+
+    const prior = previouslyFocusedElement;
+    previouslyFocusedElement = null;
+    if (prior && typeof prior.focus === "function" && prior.isConnected) {
+      try {
+        prior.focus({ preventScroll: true });
+      } catch {
+        /* element may no longer be focusable */
+      }
+    }
+  }
+
+  function ensureAssistUi() {
+    if (assistUi) return assistUi;
+
+    const host = document.getElementById(ASSIST_UI_HOST_ID) || document.createElement("div");
+    host.id = ASSIST_UI_HOST_ID;
+    host.style.position = "fixed";
+    host.style.inset = "0";
+    host.style.pointerEvents = "none";
+    host.style.zIndex = "2147483646";
+
+    if (!host.isConnected) {
+      (document.documentElement || document.body).appendChild(host);
+    }
+
+    const shadow = host.attachShadow({ mode: "closed" });
+
+    const style = document.createElement("style");
+    style.textContent = ASSIST_UI_STYLES;
+
+    const overlay = document.createElement("div");
+    overlay.id = "overlay";
+
+    const panel = document.createElement("aside");
+    panel.id = "panel";
+    panel.hidden = true;
+
+    const header = document.createElement("div");
+    header.className = "header";
+
+    const heading = document.createElement("div");
+    heading.className = "heading";
+
+    const badge = document.createElement("span");
+    badge.className = "badge";
+
+    const title = document.createElement("h2");
+    title.className = "title";
+
+    const close = document.createElement("button");
+    close.type = "button";
+    close.className = "close";
+    close.addEventListener("click", hideAssistPanel);
+
+    const body = document.createElement("div");
+    body.className = "body";
+
+    heading.append(badge, title);
+    header.append(heading, close);
+    panel.append(header, body);
+    overlay.append(panel);
+    shadow.append(style, overlay);
+
+    panel.setAttribute("tabindex", "-1");
+    panel.setAttribute("role", "dialog");
+    panel.setAttribute("aria-modal", "false");
+    close.setAttribute("aria-label", "Close");
+
+    panel.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") {
+        event.stopPropagation();
+        hideAssistPanel();
+      }
+    });
+
+    assistUi = {
+      host,
+      shadow,
+      panel,
+      badge,
+      title,
+      body,
+      close
+    };
+
+    syncAssistUiAppearance();
+    return assistUi;
+  }
+
+  function syncAssistUiAppearance() {
+    if (!assistUi) return;
+
+    const theme = THEMES[syncSettings.themePreset] || THEMES["soft-light"];
+    const isDark = syncSettings.themePreset === "soft-dark";
+
+    assistUi.host.style.setProperty(
+      "--asd-ui-font",
+      syncSettings.readableFontEnabled
+        ? '"KoddiUD OnGothic", "Atkinson Hyperlegible", "Segoe UI", "Malgun Gothic", Arial, sans-serif'
+        : 'system-ui, "Segoe UI", Arial, sans-serif'
+    );
+    assistUi.host.style.setProperty("--asd-ui-surface", theme.surface);
+    assistUi.host.style.setProperty(
+      "--asd-ui-surface-soft",
+      isDark ? "rgba(31, 38, 44, 0.92)" : "rgba(248, 244, 237, 0.96)"
+    );
+    assistUi.host.style.setProperty(
+      "--asd-ui-card",
+      isDark ? "rgba(31, 38, 44, 0.92)" : "rgba(255, 255, 255, 0.82)"
+    );
+    assistUi.host.style.setProperty("--asd-ui-fg", theme.fg);
+    assistUi.host.style.setProperty("--asd-ui-muted", theme.muted || "#59656b");
+    assistUi.host.style.setProperty("--asd-ui-accent", theme.accent);
+    assistUi.host.style.setProperty(
+      "--asd-ui-accent-soft",
+      isDark ? "rgba(138, 182, 214, 0.16)" : "rgba(63, 111, 143, 0.12)"
+    );
+    assistUi.host.style.setProperty("--asd-ui-border", theme.border || "rgba(63, 111, 143, 0.24)");
+  }
+
+  function appendResultSections(container, requestType, response, text) {
+    if (requestType === "selection") {
+      if (response.selectionText) {
+        container.append(createTextSection(text.selectedText, response.selectionText, text.noItems));
+      }
+      container.append(createTextSection(text.directMeaning, response.plainMeaning, text.noItems));
+      container.append(createTextSection(text.likelyIntent, response.likelyIntent, text.noItems));
+      container.append(createTextSection(text.whatToDoNext, response.whatToDoNext, text.noItems));
+      container.append(createTextSection(text.calmerRewrite, response.saferRewrite, text.noItems));
+      container.append(createListSection(text.confusingParts, response.confusingParts, text.noItems));
+      container.append(createTextSection(text.confidenceNote, response.confidenceNote, text.noItems));
+      return;
+    }
+
+    if (requestType === "form") {
+      container.append(createTextSection(text.formPurpose, response.formPurpose, text.noItems));
+      container.append(createListSection(text.requiredFields, response.requiredFields, text.noItems));
+      container.append(createListSection(text.optionalFields, response.optionalFields, text.noItems));
+      container.append(createListSection(text.importantWarnings, response.importantWarnings, text.noItems));
+      container.append(createListSection(text.timeSensitiveWarnings, response.timeSensitiveWarnings, text.noItems));
+      container.append(createListSection(text.reviewBeforeSubmit, response.reviewBeforeSubmit, text.noItems));
+      container.append(createListSection(text.suggestedSteps, response.suggestedSteps, text.noItems));
+      container.append(createTextSection(text.confidenceNote, response.confidenceNote, text.noItems));
+      return;
+    }
+
+    let appended = false;
+    appended = appendOptionalTextSection(container, text.pagePurpose, response.pagePurpose) || appended;
+    appended = appendOptionalListSection(container, text.importantAreas, response.importantAreas) || appended;
+    appended = appendOptionalListSection(container, text.visibleMainActions, response.visibleMainActions) || appended;
+    appended = appendOptionalTextSection(container, text.likelyNextStep, response.likelyNextStep) || appended;
+    appended = appendOptionalListSection(container, text.optionalAreas, response.optionalOrSecondaryAreas) || appended;
+    appended = appendOptionalListSection(container, text.warningsOrConfusingPoints, response.warningsOrConfusingPoints) || appended;
+    appended = appendOptionalListSection(container, text.unknowns, response.unknowns) || appended;
+    appended = appendOptionalTextSection(container, text.confidenceNote, response.confidenceNote) || appended;
+
+    if (response.formGuide && typeof response.formGuide === "object") {
+      appendEmbeddedFormGuide(container, response.formGuide, text);
+      appended = true;
+    }
+
+    if (!appended) {
+      container.append(createMessage(text.noItems));
+    }
+  }
+
+  function createTextSection(label, value, fallback) {
+    const section = document.createElement("section");
+    section.className = "section";
+
+    const heading = document.createElement("h3");
+    heading.textContent = label;
+
+    const paragraph = document.createElement("p");
+    paragraph.textContent = normalizeText(value || "", 1000) || fallback;
+
+    section.append(heading, paragraph);
+    return section;
+  }
+
+  function createListSection(label, items, fallback) {
+    const section = document.createElement("section");
+    section.className = "section";
+
+    const heading = document.createElement("h3");
+    heading.textContent = label;
+    section.append(heading);
+
+    if (!Array.isArray(items) || items.length === 0) {
+      const paragraph = document.createElement("p");
+      paragraph.textContent = fallback;
+      section.append(paragraph);
+      return section;
+    }
+
+    const list = document.createElement("ul");
+    items.slice(0, 10).forEach((item) => {
+      const element = document.createElement("li");
+      element.textContent = normalizeText(item || "", 400);
+      list.append(element);
+    });
+    section.append(list);
+    return section;
+  }
+
+  function appendOptionalTextSection(container, label, value) {
+    if (!normalizeText(value || "", 1000)) return false;
+    container.append(createTextSection(label, value, ""));
+    return true;
+  }
+
+  function appendOptionalListSection(container, label, items) {
+    if (!Array.isArray(items) || items.length === 0) return false;
+    container.append(createListSection(label, items, ""));
+    return true;
+  }
+
+  function appendEmbeddedFormGuide(container, formGuide, text) {
+    container.append(createTextSection(text.formTitle, formGuide.formPurpose, text.noItems));
+    container.append(createListSection(text.requiredFields, formGuide.requiredFields, text.noItems));
+    container.append(createListSection(text.optionalFields, formGuide.optionalFields, text.noItems));
+    container.append(createListSection(text.importantWarnings, formGuide.importantWarnings, text.noItems));
+    container.append(createListSection(text.timeSensitiveWarnings, formGuide.timeSensitiveWarnings, text.noItems));
+    container.append(createListSection(text.reviewBeforeSubmit, formGuide.reviewBeforeSubmit, text.noItems));
+    container.append(createListSection(text.suggestedSteps, formGuide.suggestedSteps, text.noItems));
+    container.append(createTextSection(text.confidenceNote, formGuide.confidenceNote, text.noItems));
+  }
+
+  function createMessage(message) {
+    const paragraph = document.createElement("p");
+    paragraph.className = "message";
+    paragraph.textContent = message;
+    return paragraph;
+  }
+
+  function getPanelTitle(requestType, text) {
+    if (requestType === "form") return text.formTitle;
+    if (requestType === "page") return text.pageTitle;
+    return text.selectionTitle;
+  }
+
+  function getPanelText() {
+    const locale = resolveLocale(syncSettings.uiLanguage);
+    return PANEL_TEXT[locale] || PANEL_TEXT.en;
+  }
+
+  function getCurrentSiteOverride() {
+    const origin = typeof globalThis.location?.origin === "string" ? globalThis.location.origin : "";
+    const overrides = siteOverrides && typeof siteOverrides === "object" ? siteOverrides : {};
+    return normalizeSiteOverride(origin ? overrides[origin] : null);
+  }
+
+  function sendRuntimeMessage(message) {
+    return new Promise((resolve) => {
+      if (!isExtensionContextAvailable()) {
+        handleExtensionContextInvalidation();
+        resolve(null);
+        return;
+      }
+
+      try {
+        chrome.runtime.sendMessage(message, (response) => {
+          if (!isExtensionContextAvailable()) {
+            handleExtensionContextInvalidation();
+            resolve(null);
+            return;
+          }
+
+          if (chrome.runtime.lastError) {
+            if (/Extension context invalidated/i.test(chrome.runtime.lastError.message || "")) {
+              handleExtensionContextInvalidation();
+            }
+            resolve(null);
+            return;
+          }
+          resolve(response || null);
+        });
+      } catch {
+        handleExtensionContextInvalidation();
+        resolve(null);
+      }
+    });
+  }
+
+  function isExtensionContextAvailable() {
+    if (!extensionContextAvailable) return false;
+
+    try {
+      return Boolean(chrome?.runtime?.id);
+    } catch {
+      return false;
+    }
+  }
+
+  function handleExtensionContextInvalidation() {
+    if (!extensionContextAvailable) return;
+
+    extensionContextAvailable = false;
+    hideAssistPanel();
+  }
+
+  function isExtensionContextInvalidationError(error) {
+    return /Extension context invalidated/i.test(String(error?.message || error || ""));
+  }
+
+  function normalizeSettings(value = {}) {
+    const settings = { ...DEFAULT_SETTINGS, ...safeObject(value) };
+    settings.enabled = normalizeBoolean(settings.enabled, DEFAULT_SETTINGS.enabled);
+    settings.readableFontEnabled = normalizeBoolean(settings.readableFontEnabled, DEFAULT_SETTINGS.readableFontEnabled);
+    settings.reduceContrastEnabled = normalizeBoolean(settings.reduceContrastEnabled, DEFAULT_SETTINGS.reduceContrastEnabled);
+    settings.readerMode = normalizeBoolean(settings.readerMode, DEFAULT_SETTINGS.readerMode);
+    settings.communityAssistEnabled = normalizeBoolean(settings.communityAssistEnabled, DEFAULT_SETTINGS.communityAssistEnabled);
+    settings.adRemovalEnabled = normalizeBoolean(settings.adRemovalEnabled, DEFAULT_SETTINGS.adRemovalEnabled);
+    settings.reduceMotion = normalizeBoolean(settings.reduceMotion, DEFAULT_SETTINGS.reduceMotion);
+    settings.muteAutoplay = normalizeBoolean(settings.muteAutoplay, DEFAULT_SETTINGS.muteAutoplay);
+    settings.imageSofteningEnabled = normalizeBoolean(settings.imageSofteningEnabled, DEFAULT_SETTINGS.imageSofteningEnabled);
+    settings.readingRuler = normalizeBoolean(settings.readingRuler, DEFAULT_SETTINGS.readingRuler);
+    settings.aiHelperEnabled = normalizeBoolean(settings.aiHelperEnabled, DEFAULT_SETTINGS.aiHelperEnabled);
+    settings.aiGentleSuggestions = normalizeBoolean(settings.aiGentleSuggestions, DEFAULT_SETTINGS.aiGentleSuggestions);
+    settings.showActiveStateIndicator = normalizeBoolean(
+      settings.showActiveStateIndicator,
+      DEFAULT_SETTINGS.showActiveStateIndicator
+    );
+    settings.themePreset = THEMES[settings.themePreset] ? settings.themePreset : DEFAULT_SETTINGS.themePreset;
+    settings.pageDensity = normalizePageDensity(settings.pageDensity);
+    settings.imageSofteningStrength = normalizeImageSofteningStrength(settings.imageSofteningStrength);
+    settings.textScale = clampInteger(settings.textScale, 80, 140, DEFAULT_SETTINGS.textScale);
+    settings.lineHeight = clampNumber(settings.lineHeight, 1.4, 2.1, DEFAULT_SETTINGS.lineHeight);
+    return settings;
+  }
+
+  function normalizeSiteOverrides(value = {}) {
+    const result = {};
+    for (const [origin, override] of Object.entries(safeObject(value))) {
+      result[origin] = normalizeSiteOverride(override);
+    }
+    return result;
+  }
+
+  function normalizeSiteOverride(value = {}) {
+    const override = { ...DEFAULT_SITE_OVERRIDE, ...safeObject(value) };
+    return Object.fromEntries(
+      Object.entries(DEFAULT_SITE_OVERRIDE).map(([key, fallback]) => [
+        key,
+        normalizeBoolean(override[key], fallback)
+      ])
+    );
+  }
+
+  function onBodyReady(callback) {
+    if (document.body) {
+      callback();
+      return;
+    }
+    document.addEventListener("DOMContentLoaded", callback, { once: true });
+  }
+
+  function safeObject(value) {
+    return value && typeof value === "object" && !Array.isArray(value) ? value : {};
+  }
+
+  function normalizeBoolean(value, fallback) {
+    if (typeof value === "boolean") return value;
+    if (value === "true" || value === "1") return true;
+    if (value === "false" || value === "0") return false;
+    return Boolean(fallback);
+  }
+
+  function clampInteger(value, min, max, fallback) {
+    const parsed = Number.parseInt(String(value), 10);
+    if (!Number.isFinite(parsed)) return fallback;
+    return Math.min(max, Math.max(min, parsed));
+  }
+
+  function clampNumber(value, min, max, fallback) {
+    const parsed = Number.parseFloat(String(value));
+    if (!Number.isFinite(parsed)) return fallback;
+    return Math.min(max, Math.max(min, parsed));
+  }
+
+  function normalizePageDensity(value) {
+    if (value === "compact" || value === "spacious") return value;
+    return "normal";
+  }
+
+  function normalizeImageSofteningStrength(value) {
+    if (value === "low" || value === "high") return value;
+    return "medium";
+  }
+
+  function resolveImageSofteningBlur(value) {
+    if (value === "low") return "4px";
+    if (value === "high") return "12px";
+    return "8px";
+  }
+
+  function hasReadableText(element) {
+    const text = normalizeText(element.textContent || "", 240);
+    if (text.length < 2) return false;
+
+    const tagName = element.tagName;
+    if (["SCRIPT", "STYLE", "NOSCRIPT", "SVG", "PATH"].includes(tagName)) return false;
+    if (element.closest("button, input, textarea, select")) return false;
+    return true;
+  }
+
+  function resolveRenderedBackground(element) {
+    let node = element;
+
+    while (node instanceof Element) {
+      const background = parseCssColor(getComputedStyle(node).backgroundColor);
+      if (background && background.alpha > 0.92) {
+        return background;
+      }
+      node = node.parentElement;
+    }
+
+    return getThemeFallbackBackground();
+  }
+
+  function getThemeFallbackBackground() {
+    const background = parseCssColor(getComputedStyle(document.body || document.documentElement).backgroundColor);
+    if (background) return background;
+
+    const theme = THEMES[syncSettings.themePreset] || THEMES["soft-light"];
+    return parseHexColor(theme.bg) || { red: 250, green: 247, blue: 240, alpha: 1 };
+  }
+
+  function parseCssColor(value) {
+    if (typeof value !== "string") return null;
+    const match = value.trim().match(/^rgba?\(([^)]+)\)$/i);
+    if (!match) return null;
+
+    const parts = match[1].split(",").map((item) => item.trim());
+    if (parts.length < 3) return null;
+
+    const red = Number.parseFloat(parts[0]);
+    const green = Number.parseFloat(parts[1]);
+    const blue = Number.parseFloat(parts[2]);
+    const alpha = parts[3] === undefined ? 1 : Number.parseFloat(parts[3]);
+
+    if (![red, green, blue, alpha].every((part) => Number.isFinite(part))) return null;
+    return { red, green, blue, alpha };
+  }
+
+  function parseHexColor(value) {
+    const normalized = String(value || "").trim();
+    const match = normalized.match(/^#([0-9a-f]{6})$/i);
+    if (!match) return null;
+
+    const hex = match[1];
+    return {
+      red: Number.parseInt(hex.slice(0, 2), 16),
+      green: Number.parseInt(hex.slice(2, 4), 16),
+      blue: Number.parseInt(hex.slice(4, 6), 16),
+      alpha: 1
+    };
+  }
+
+  function contrastRatio(foreground, background) {
+    const fg = relativeLuminance(foreground);
+    const bg = relativeLuminance(background);
+    const lighter = Math.max(fg, bg);
+    const darker = Math.min(fg, bg);
+    return (lighter + 0.05) / (darker + 0.05);
+  }
+
+  function relativeLuminance(color) {
+    const channels = [color.red, color.green, color.blue].map((channel) => {
+      const normalized = channel / 255;
+      return normalized <= 0.03928 ? normalized / 12.92 : ((normalized + 0.055) / 1.055) ** 2.4;
+    });
+
+    return channels[0] * 0.2126 + channels[1] * 0.7152 + channels[2] * 0.0722;
+  }
+
+  function normalizeText(value, maxLength) {
+    return String(value || "").replace(/\s+/g, " ").trim().slice(0, maxLength);
+  }
+
+  function resolveLocale(value) {
+    if (value === "ko" || value === "en") return value;
+    return navigator.language?.toLowerCase().startsWith("ko") ? "ko" : "en";
+  }
+
+  function isVisibleElement(element) {
+    if (!(element instanceof Element)) return false;
+    const rect = element.getBoundingClientRect();
+    if (rect.width <= 0 || rect.height <= 0) return false;
+
+    const style = getComputedStyle(element);
+    return style.display !== "none" && style.visibility !== "hidden" && style.opacity !== "0";
+  }
+
+  function isExtensionUiElement(element) {
+    return Boolean(
+      element.id === ASSIST_UI_HOST_ID ||
+        element.closest(`#${ASSIST_UI_HOST_ID}`) ||
+        element.closest(".asd-foundation-indicator") ||
+        element.closest(".asd-foundation-ruler")
+    );
+  }
+
+  function escapeSelector(value) {
+    try {
+      return CSS.escape(value);
+    } catch {
+      return value.replace(/["\\]/g, "");
+    }
+  }
+})();

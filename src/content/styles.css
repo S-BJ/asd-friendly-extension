@@ -1,0 +1,385 @@
+:root[data-asd-foundation][data-asd-motion-off] *,
+:root[data-asd-foundation][data-asd-motion-off] *::before,
+:root[data-asd-foundation][data-asd-motion-off] *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  scroll-behavior: auto !important;
+  transition-duration: 0.001ms !important;
+}
+
+:root[data-asd-foundation] {
+  --asd-readable-font: "KoddiUD 온고딕", "KoddiUD OnGothic", "KoddiUDOnGothic", "Atkinson Hyperlegible", "Segoe UI", "Malgun Gothic", "Apple SD Gothic Neo", Verdana, Arial, sans-serif;
+  --asd-mono-font: ui-monospace, "Cascadia Mono", "Segoe UI Mono", Consolas, monospace;
+}
+
+:root[data-asd-foundation][data-asd-font] :is(
+  body,
+  main,
+  article,
+  section,
+  aside,
+  nav,
+  header,
+  footer,
+  form,
+  table,
+  thead,
+  tbody,
+  tr,
+  td,
+  th,
+  p,
+  li,
+  dd,
+  dt,
+  blockquote,
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  label,
+  button,
+  input,
+  select,
+  textarea,
+  summary,
+  [role="main"],
+  [role="article"],
+  [role="region"],
+  [class*="content" i],
+  [class*="article" i],
+  [class*="post" i],
+  [class*="comment" i],
+  [class*="thread" i]
+) {
+  font-family: var(--asd-readable-font) !important;
+}
+
+:root[data-asd-foundation][data-asd-font] :is(pre, code, kbd, samp) {
+  font-family: var(--asd-mono-font) !important;
+}
+
+:root[data-asd-foundation]:not([data-asd-theme="original"]) {
+  color-scheme: light !important;
+}
+
+:root[data-asd-foundation][data-asd-theme="soft-dark"] {
+  color-scheme: dark !important;
+}
+
+:root[data-asd-foundation][data-asd-force-light] {
+  color-scheme: light !important;
+}
+
+:root[data-asd-foundation][data-asd-force-light] :is(input, textarea, select, button) {
+  color-scheme: light !important;
+}
+
+:root[data-asd-foundation]:not([data-asd-theme="original"]) body {
+  background: var(--asd-bg) !important;
+  color: var(--asd-fg) !important;
+  background-image: none !important;
+}
+
+:root[data-asd-foundation][data-asd-force-light] body {
+  background: var(--asd-bg) !important;
+  color: var(--asd-fg) !important;
+  background-image: none !important;
+}
+
+:root[data-asd-foundation]:not([data-asd-theme="original"]) [data-asd-contrast-fix="1"] {
+  color: var(--asd-fg) !important;
+}
+
+:root[data-asd-foundation]:not([data-asd-theme="original"]) a[data-asd-contrast-fix="1"],
+:root[data-asd-foundation]:not([data-asd-theme="original"]) a[data-asd-contrast-fix="1"]:visited {
+  color: var(--asd-accent) !important;
+}
+
+:root[data-asd-foundation]:not([data-asd-theme="original"]) [data-asd-contrast-fix="light-bg"] {
+  color: var(--asd-fg) !important;
+}
+
+:root[data-asd-foundation]:not([data-asd-theme="original"]) a[data-asd-contrast-fix="light-bg"],
+:root[data-asd-foundation]:not([data-asd-theme="original"]) a[data-asd-contrast-fix="light-bg"]:visited {
+  color: var(--asd-accent) !important;
+}
+
+:root[data-asd-foundation]:not([data-asd-theme="original"]) [data-asd-contrast-fix="dark-bg"] {
+  color: var(--asd-fg-on-dark, #f1f3f5) !important;
+}
+
+:root[data-asd-foundation]:not([data-asd-theme="original"]) a[data-asd-contrast-fix="dark-bg"],
+:root[data-asd-foundation]:not([data-asd-theme="original"]) a[data-asd-contrast-fix="dark-bg"]:visited {
+  color: var(--asd-accent-on-dark, #8ab6d6) !important;
+}
+
+:root[data-asd-foundation]:not([data-asd-theme="original"]) :is(
+  main,
+  article,
+  section,
+  aside,
+  nav,
+  header,
+  footer,
+  form,
+  table,
+  thead,
+  tbody,
+  tr,
+  td,
+  th,
+  dialog,
+  [role="main"],
+  [role="article"],
+  [role="region"],
+  [class*="content" i],
+  [class*="article" i],
+  [class*="post" i],
+  [class*="comment" i],
+  [class*="thread" i]
+) {
+  background-color: color-mix(in srgb, var(--asd-surface) 92%, transparent) !important;
+  background-image: none !important;
+  color: var(--asd-fg) !important;
+}
+
+:root[data-asd-foundation]:not([data-asd-theme="original"]) :is(p, li, dd, dt, blockquote, h1, h2, h3, h4, h5, h6, span, strong, em, small) {
+  color: inherit;
+}
+
+:root[data-asd-foundation]:not([data-asd-theme="original"]) :is(a, a:visited) {
+  color: var(--asd-accent) !important;
+}
+
+:root[data-asd-foundation]:not([data-asd-theme="original"]) :is(input, textarea, select, button, summary) {
+  background-color: var(--asd-surface) !important;
+  border-color: var(--asd-border) !important;
+  color: var(--asd-fg) !important;
+}
+
+:root[data-asd-foundation]:not([data-asd-theme="original"]) :is(hr, fieldset) {
+  border-color: var(--asd-border) !important;
+}
+
+:root[data-asd-foundation][data-asd-reduce-contrast]:not([data-asd-theme="original"]) {
+  --asd-fg: color-mix(in srgb, var(--asd-base-fg) 82%, var(--asd-base-bg));
+  --asd-accent: color-mix(in srgb, var(--asd-base-accent) 78%, var(--asd-base-fg));
+  --asd-surface: color-mix(in srgb, var(--asd-base-surface) 84%, var(--asd-base-bg));
+}
+
+:root[data-asd-foundation][data-asd-reduce-contrast] :is(img, picture, video, canvas, svg) {
+  filter: contrast(0.9) saturate(0.92) brightness(0.98) !important;
+}
+
+html[data-asd-foundation][data-asd-image-softening]:not([data-asd-reduce-contrast]) :is(
+  img,
+  video,
+  iframe[src*="youtube.com/embed"],
+  iframe[src*="youtube-nocookie.com/embed"],
+  iframe[src*="player.vimeo.com"],
+  iframe[src*="dailymotion.com/embed"],
+  iframe[src*="tv.naver.com/embed"],
+  iframe[src*="tv.kakao.com/embed"],
+  iframe[src*="streamable.com"]
+) {
+  filter: blur(var(--asd-image-softening-blur, 8px)) !important;
+  transition: filter 120ms ease !important;
+}
+
+html[data-asd-foundation][data-asd-image-softening][data-asd-reduce-contrast] :is(
+  img,
+  video,
+  iframe[src*="youtube.com/embed"],
+  iframe[src*="youtube-nocookie.com/embed"],
+  iframe[src*="player.vimeo.com"],
+  iframe[src*="dailymotion.com/embed"],
+  iframe[src*="tv.naver.com/embed"],
+  iframe[src*="tv.kakao.com/embed"],
+  iframe[src*="streamable.com"]
+) {
+  filter: blur(var(--asd-image-softening-blur, 8px)) contrast(0.9) saturate(0.92) brightness(0.98) !important;
+  transition: filter 120ms ease !important;
+}
+
+html[data-asd-foundation][data-asd-image-softening]:not([data-asd-reduce-contrast]) :is(
+  img:hover,
+  img:focus-visible,
+  a:hover img,
+  a:focus-visible img,
+  button:hover img,
+  button:focus-visible img,
+  picture:hover > img,
+  video:hover,
+  video:focus-visible,
+  iframe[src*="youtube.com/embed"]:hover,
+  iframe[src*="youtube.com/embed"]:focus-visible,
+  iframe[src*="youtube-nocookie.com/embed"]:hover,
+  iframe[src*="youtube-nocookie.com/embed"]:focus-visible,
+  iframe[src*="player.vimeo.com"]:hover,
+  iframe[src*="player.vimeo.com"]:focus-visible,
+  iframe[src*="dailymotion.com/embed"]:hover,
+  iframe[src*="dailymotion.com/embed"]:focus-visible,
+  iframe[src*="tv.naver.com/embed"]:hover,
+  iframe[src*="tv.naver.com/embed"]:focus-visible,
+  iframe[src*="tv.kakao.com/embed"]:hover,
+  iframe[src*="tv.kakao.com/embed"]:focus-visible,
+  iframe[src*="streamable.com"]:hover,
+  iframe[src*="streamable.com"]:focus-visible
+) {
+  filter: none !important;
+}
+
+html[data-asd-foundation][data-asd-image-softening][data-asd-reduce-contrast] :is(
+  img:hover,
+  img:focus-visible,
+  a:hover img,
+  a:focus-visible img,
+  button:hover img,
+  button:focus-visible img,
+  picture:hover > img,
+  video:hover,
+  video:focus-visible,
+  iframe[src*="youtube.com/embed"]:hover,
+  iframe[src*="youtube.com/embed"]:focus-visible,
+  iframe[src*="youtube-nocookie.com/embed"]:hover,
+  iframe[src*="youtube-nocookie.com/embed"]:focus-visible,
+  iframe[src*="player.vimeo.com"]:hover,
+  iframe[src*="player.vimeo.com"]:focus-visible,
+  iframe[src*="dailymotion.com/embed"]:hover,
+  iframe[src*="dailymotion.com/embed"]:focus-visible,
+  iframe[src*="tv.naver.com/embed"]:hover,
+  iframe[src*="tv.naver.com/embed"]:focus-visible,
+  iframe[src*="tv.kakao.com/embed"]:hover,
+  iframe[src*="tv.kakao.com/embed"]:focus-visible,
+  iframe[src*="streamable.com"]:hover,
+  iframe[src*="streamable.com"]:focus-visible
+) {
+  filter: contrast(0.9) saturate(0.92) brightness(0.98) !important;
+}
+
+html[data-asd-foundation][data-asd-image-softening] [data-asd-background-image-softened] {
+  position: relative !important;
+  isolation: isolate !important;
+  overflow: hidden !important;
+  background-image: none !important;
+}
+
+html[data-asd-foundation][data-asd-image-softening] [data-asd-background-image-softened]::before {
+  content: "" !important;
+  position: absolute !important;
+  inset: 0 !important;
+  z-index: 0 !important;
+  pointer-events: none !important;
+  background-image: var(--asd-background-softening-image) !important;
+  background-size: var(--asd-background-softening-size, cover) !important;
+  background-position: var(--asd-background-softening-position, center) !important;
+  background-repeat: var(--asd-background-softening-repeat, no-repeat) !important;
+  filter: blur(var(--asd-image-softening-blur, 8px)) !important;
+  transform: scale(1.03) !important;
+  transition: filter 120ms ease, transform 120ms ease !important;
+}
+
+html[data-asd-foundation][data-asd-image-softening] [data-asd-background-image-softened] > * {
+  position: relative !important;
+  z-index: 1 !important;
+}
+
+html[data-asd-foundation][data-asd-image-softening][data-asd-reduce-contrast] [data-asd-background-image-softened]::before {
+  filter: blur(var(--asd-image-softening-blur, 8px)) contrast(0.9) saturate(0.92) brightness(0.98) !important;
+}
+
+html[data-asd-foundation][data-asd-image-softening]:not([data-asd-reduce-contrast]) [data-asd-background-image-softened]:is(:hover, :focus-within)::before {
+  filter: none !important;
+  transform: none !important;
+}
+
+html[data-asd-foundation][data-asd-image-softening][data-asd-reduce-contrast] [data-asd-background-image-softened]:is(:hover, :focus-within)::before {
+  filter: contrast(0.9) saturate(0.92) brightness(0.98) !important;
+  transform: none !important;
+}
+
+:root[data-asd-foundation] :is(p, li, dd, dt, blockquote, label, input, textarea, select, button) {
+  line-height: var(--asd-line-height, 1.7) !important;
+}
+
+:root[data-asd-foundation] :is(p, li, dd, dt, blockquote) {
+  font-size: var(--asd-text-scale, 100%) !important;
+}
+
+:root[data-asd-foundation][data-asd-reader][data-asd-profile="reader"] :is(article, main, [role="main"]) {
+  max-width: 78ch !important;
+  margin-inline: auto !important;
+  float: none !important;
+}
+
+:root[data-asd-foundation][data-asd-reader][data-asd-profile="reader"] body :is(
+  aside,
+  nav,
+  footer,
+  [role="complementary"],
+  [role="navigation"],
+  [role="contentinfo"],
+  [class*="sidebar" i],
+  [id*="sidebar" i],
+  [class*="related" i]:not(main [class*="related" i]),
+  [class*="recommend" i]:not(main [class*="recommend" i])
+) {
+  display: none !important;
+}
+
+:root[data-asd-foundation][data-asd-community-assist][data-asd-profile="community"] :is(
+  article,
+  [role="article"],
+  [data-testid="post-container"],
+  shreddit-comment,
+  .comment_view,
+  .cmt_info,
+  .reply
+) {
+  line-height: var(--asd-line-height, 1.7) !important;
+}
+
+:root[data-asd-foundation][data-asd-ad-removal] [data-asd-ad-collapsed] {
+  display: none !important;
+}
+
+:root[data-asd-foundation][data-asd-density="compact"] :is(p, li, dd, dt, blockquote) {
+  margin-top: 0.35em !important;
+  margin-bottom: 0.35em !important;
+}
+
+:root[data-asd-foundation][data-asd-density="spacious"]:not([data-asd-sensitive-kind]) :is(p, li, dd, dt, blockquote) {
+  margin-top: 0.9em !important;
+  margin-bottom: 0.9em !important;
+}
+
+.asd-foundation-indicator {
+  position: fixed;
+  z-index: 2147483647;
+  right: 12px;
+  bottom: 12px;
+  max-width: min(220px, calc(100vw - 24px));
+  padding: 6px 9px;
+  border: 1px solid rgba(63, 111, 143, 0.36);
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--asd-surface, #fffdf8) 94%, transparent);
+  color: var(--asd-fg, #1f2428);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  font: 12px/1.35 var(--asd-readable-font);
+  pointer-events: none;
+}
+
+.asd-foundation-ruler {
+  position: fixed;
+  z-index: 2147483646;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 36px;
+  border-block: 1px solid rgba(63, 111, 143, 0.2);
+  background: rgba(63, 111, 143, 0.08);
+  pointer-events: none;
+}

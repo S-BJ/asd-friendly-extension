@@ -1,0 +1,43 @@
+{
+  "manifest_version": 3,
+  "name": "ASD-Friendly UI",
+  "version": "0.5.0",
+  "description": "Calm, predictable, legible web pages with user-controlled autism-friendly supports.",
+  "permissions": ["storage", "tabs", "scripting", "declarativeNetRequest"],
+  "host_permissions": ["http://*/*", "https://*/*"],
+  "declarative_net_request": {
+    "rule_resources": [
+      {
+        "id": "asd_ad_block",
+        "enabled": false,
+        "path": "rules/ad-block.json"
+      }
+    ]
+  },
+  "background": {
+    "service_worker": "background/index.js",
+    "type": "module"
+  },
+  "commands": {
+    "run-ai-analysis": {
+      "suggested_key": {
+        "default": "Alt+1"
+      },
+      "description": "Run AI analysis on the current tab"
+    }
+  },
+  "content_scripts": [
+    {
+      "matches": ["http://*/*", "https://*/*"],
+      "js": ["content/index.js"],
+      "css": ["content/styles.css"],
+      "run_at": "document_start",
+      "all_frames": true,
+      "match_origin_as_fallback": false
+    }
+  ],
+  "action": {
+    "default_popup": "popup/index.html",
+    "default_title": "ASD-Friendly UI"
+  }
+}

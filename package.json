@@ -1,0 +1,13 @@
+{
+  "name": "asd-friendly-extension",
+  "version": "0.5.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build-extension.mjs",
+    "audit:sites": "node scripts/audit-extension-sites.mjs",
+    "audit:sites:ai": "node scripts/audit-extension-sites.mjs --ai",
+    "verify:toggles": "node scripts/verify-extension-toggles.mjs",
+    "test": "node --test"
+  }
+}

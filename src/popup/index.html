@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>ASD-Friendly UI</title>
+    <link rel="stylesheet" href="./styles.css">
+  </head>
+  <body>
+    <main class="shell">
+      <section id="first-run-panel" class="first-run" hidden>
+        <p class="eyebrow" data-i18n="firstRunEyebrow">First-run comfort setup</p>
+        <h1 data-i18n="firstRunTitle">Choose a calm starting point</h1>
+        <p class="first-run-copy" data-i18n="firstRunCopy">You can change every setting later. This setup only picks a reversible default.</p>
+        <div class="preset-grid">
+          <button type="button" data-first-run-preset="minimal-safe" data-i18n="presetMinimalSafe">Minimal</button>
+          <button type="button" data-first-run-preset="soft-light-calm" data-i18n="presetSoftLight">Soft light</button>
+          <button type="button" data-first-run-preset="soft-dark-calm" data-i18n="presetSoftDark">Soft dark</button>
+          <button type="button" data-first-run-preset="text-focused" data-i18n="presetTextFocused">Text focused</button>
+          <button type="button" data-first-run-preset="motion-minimal" data-i18n="presetMotionMinimal">Motion minimal</button>
+        </div>
+        <label class="toggle">
+          <input id="first-run-reduce-contrast" type="checkbox">
+          <span data-i18n="reduceContrast">Reduce screen contrast</span>
+        </label>
+        <label class="toggle">
+          <input id="first-run-readable-font" type="checkbox">
+          <span data-i18n="readableFont">Use readable font</span>
+        </label>
+        <label class="toggle">
+          <input id="first-run-ad-removal" type="checkbox">
+          <span data-i18n="hideLikelyAds">Hide likely ads</span>
+        </label>
+        <button id="skip-first-run" class="text-button" type="button" data-i18n="skipSetup">Skip setup</button>
+      </section>
+
+      <header class="topbar">
+        <div>
+          <h1>ASD-Friendly UI</h1>
+          <p id="origin-label" data-i18n="checkingTab">Checking the current tab.</p>
+        </div>
+        <label class="switch">
+          <input id="enabled" type="checkbox">
+          <span data-i18n="extensionOn">On</span>
+        </label>
+      </header>
+
+      <section class="section">
+        <label class="field">
+          <span data-i18n="language">Language</span>
+          <select id="uiLanguage" data-setting="uiLanguage">
+            <option value="auto" data-i18n="languageAuto">Auto</option>
+            <option value="en" data-i18n="languageEnglish">English</option>
+            <option value="ko" data-i18n="languageKorean">Korean</option>
+          </select>
+        </label>
+
+        <label class="field">
+          <span data-i18n="comfortPreset">Comfort preset</span>
+          <select id="activeComfortPreset" data-setting="activeComfortPreset">
+            <option value="minimal-safe" data-i18n="presetMinimalSafe">Minimal</option>
+            <option value="soft-light-calm" data-i18n="presetSoftLight">Soft light</option>
+            <option value="soft-dark-calm" data-i18n="presetSoftDark">Soft dark</option>
+            <option value="text-focused" data-i18n="presetTextFocused">Text focused</option>
+            <option value="motion-minimal" data-i18n="presetMotionMinimal">Motion minimal</option>
+          </select>
+        </label>
+
+        <div class="grid">
+          <label class="toggle">
+            <input type="checkbox" data-setting="reduceMotion">
+            <span data-i18n="reduceMotion">Reduce motion</span>
+          </label>
+          <label class="toggle">
+            <input type="checkbox" data-setting="reduceContrastEnabled">
+            <span data-i18n="reduceContrastShort">Reduce contrast</span>
+          </label>
+          <label class="toggle">
+            <input type="checkbox" data-setting="readableFontEnabled">
+            <span data-i18n="readableFontShort">Readable font</span>
+          </label>
+          <label class="toggle">
+            <input type="checkbox" data-setting="adRemovalEnabled">
+            <span data-i18n="hideAds">Hide ads</span>
+          </label>
+          <label class="toggle">
+            <input type="checkbox" data-setting="muteAutoplay">
+            <span data-i18n="muteAutoplay">Mute autoplay</span>
+          </label>
+          <label class="toggle">
+            <input type="checkbox" data-setting="readerMode">
+            <span data-i18n="readerMode">Reader mode</span>
+          </label>
+          <label class="toggle">
+            <input type="checkbox" data-setting="communityAssistEnabled">
+            <span data-i18n="communityAssist">Community assist</span>
+          </label>
+          <label class="toggle">
+            <input type="checkbox" data-setting="readingRuler">
+            <span data-i18n="readingRuler">Reading ruler</span>
+          </label>
+          <label class="toggle">
+            <input type="checkbox" data-setting="showActiveStateIndicator">
+            <span data-i18n="stateIndicator">State indicator</span>
+          </label>
+          <label class="toggle">
+            <input type="checkbox" data-setting="imageSofteningEnabled">
+            <span data-i18n="imageSoftening">Image softening</span>
+          </label>
+        </div>
+      </section>
+
+      <section class="section">
+        <label class="field">
+          <span data-i18n="pageDensity">Page density</span>
+          <select id="pageDensity" data-setting="pageDensity">
+            <option value="compact" data-i18n="densityCompact">Compact</option>
+            <option value="normal" data-i18n="densityNormal">Normal</option>
+            <option value="spacious" data-i18n="densitySpacious">Spacious</option>
+          </select>
+        </label>
+        <div class="range-row">
+          <label for="textScale" data-i18n="textSize">Text size</label>
+          <output id="textScale-output"></output>
+          <input id="textScale" type="range" min="80" max="140" step="5" data-setting="textScale">
+        </div>
+        <div class="range-row">
+          <label for="lineHeight" data-i18n="lineSpacing">Line spacing</label>
+          <output id="lineHeight-output"></output>
+          <input id="lineHeight" type="range" min="1.4" max="2.1" step="0.1" data-setting="lineHeight">
+        </div>
+      </section>
+
+      <section class="section">
+        <h2 data-i18n="aiHelperHeading">AI helper</h2>
+        <p class="section-copy" data-i18n="aiHelperCopy">Enter an OpenAI API key for direct use. A self-hosted backend URL is optional.</p>
+        <div class="grid">
+          <label class="toggle">
+            <input type="checkbox" data-setting="aiHelperEnabled">
+            <span data-i18n="aiHelperToggle">AI helper</span>
+          </label>
+          <label class="toggle">
+            <input type="checkbox" data-setting="aiGentleSuggestions">
+            <span data-i18n="gentleAiWording">Gentle AI wording</span>
+          </label>
+        </div>
+
+        <div class="field">
+          <label for="openAIApiKey" data-i18n="apiKeyLabel">OpenAI API key</label>
+          <div class="field-row">
+            <input id="openAIApiKey" type="password" autocomplete="off" spellcheck="false" placeholder="sk-...">
+            <button id="toggle-api-key" class="text-button small" type="button" aria-pressed="false" data-i18n="apiKeyReveal">Show</button>
+            <button id="clear-api-key" class="text-button small" type="button" data-i18n="apiKeyClear">Clear</button>
+          </div>
+          <p class="field-note" data-i18n="apiKeyStorageNote">Stored on this device only. Remove it if you stop using the extension.</p>
+        </div>
+
+        <label class="field">
+          <span data-i18n="backendUrlLabel">Self-hosted backend URL (optional)</span>
+          <input id="backendUrl" type="text" autocomplete="off" spellcheck="false" placeholder="http://127.0.0.1:8787">
+        </label>
+
+        <div class="action-list">
+          <button id="explain-selection" class="action-button primary" type="button" data-i18n="explainSelectionButton">Explain selected text</button>
+          <button id="explain-page" class="action-button" type="button" data-i18n="explainPageButton">Explain this page</button>
+          <button id="explain-form" class="action-button" type="button" data-i18n="explainFormButton">Explain this form</button>
+        </div>
+
+        <p id="ai-status" class="section-status" role="status" data-i18n="aiStatusIdle">AI results open on the current page.</p>
+      </section>
+
+      <section class="section site-section">
+        <h2 data-i18n="siteExceptions">Current-site exceptions</h2>
+        <div class="grid">
+          <label class="toggle">
+            <input type="checkbox" data-site-override="disabled">
+            <span data-i18n="disableHere">Disable here</span>
+          </label>
+          <label class="toggle">
+            <input type="checkbox" data-site-override="keepOriginalColors">
+            <span data-i18n="keepColors">Keep colors</span>
+          </label>
+          <label class="toggle">
+            <input type="checkbox" data-site-override="keepOriginalFonts">
+            <span data-i18n="keepFonts">Keep fonts</span>
+          </label>
+          <label class="toggle">
+            <input type="checkbox" data-site-override="disableContrastReduction">
+            <span data-i18n="keepContrast">Keep contrast</span>
+          </label>
+          <label class="toggle">
+            <input type="checkbox" data-site-override="allowAds">
+            <span data-i18n="allowAds">Allow ads</span>
+          </label>
+          <label class="toggle">
+            <input type="checkbox" data-site-override="allowAutoplay">
+            <span data-i18n="allowAutoplay">Allow autoplay</span>
+          </label>
+          <label class="toggle">
+            <input type="checkbox" data-site-override="disableImageSoftening">
+            <span data-i18n="noImageSoftening">No image softening</span>
+          </label>
+          <label class="toggle">
+            <input type="checkbox" data-site-override="disableCommunityAssist">
+            <span data-i18n="noCommunityAssist">No community assist</span>
+          </label>
+          <label class="toggle">
+            <input type="checkbox" data-site-override="disableReaderMode">
+            <span data-i18n="noReaderMode">No reader mode</span>
+          </label>
+        </div>
+      </section>
+
+      <p id="status" role="status"></p>
+    </main>
+
+    <script type="module" src="./index.js"></script>
+  </body>
+</html>
