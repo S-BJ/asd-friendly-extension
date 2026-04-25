@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   DEFAULT_SYNC_SETTINGS,
+  applyComfortPreset,
   normalizeLocalSettings,
   normalizeSyncSettings
 } from "../src/shared/settings.js";
@@ -44,11 +45,12 @@ test("sync settings clamp numeric values and normalize booleans", () => {
   assert.equal(normalized.imageSofteningEnabled, true);
   assert.equal(normalized.imageSofteningStrength, "high");
   assert.equal(normalized.reduceMotion, false);
-  assert.equal(normalized.themePreset, "soft-light");
+  assert.equal(normalized.themePreset, "original");
 });
 
 test("default sync settings are conservative except motion, autoplay, and state indicator", () => {
   assert.equal(DEFAULT_SYNC_SETTINGS.activeComfortPreset, "minimal-safe");
+  assert.equal(DEFAULT_SYNC_SETTINGS.themePreset, "original");
   assert.equal(DEFAULT_SYNC_SETTINGS.reduceMotion, true);
   assert.equal(DEFAULT_SYNC_SETTINGS.muteAutoplay, true);
   assert.equal(DEFAULT_SYNC_SETTINGS.showActiveStateIndicator, true);
@@ -59,6 +61,14 @@ test("default sync settings are conservative except motion, autoplay, and state 
   assert.equal(DEFAULT_SYNC_SETTINGS.communityAssistEnabled, false);
   assert.equal(DEFAULT_SYNC_SETTINGS.aiHelperEnabled, false);
   assert.equal(DEFAULT_SYNC_SETTINGS.pageDensity, "normal");
+});
+
+test("non-theme comfort presets preserve the original site colors", () => {
+  assert.equal(applyComfortPreset(DEFAULT_SYNC_SETTINGS, "minimal-safe").themePreset, "original");
+  assert.equal(applyComfortPreset(DEFAULT_SYNC_SETTINGS, "text-focused").themePreset, "original");
+  assert.equal(applyComfortPreset(DEFAULT_SYNC_SETTINGS, "motion-minimal").themePreset, "original");
+  assert.equal(applyComfortPreset(DEFAULT_SYNC_SETTINGS, "soft-light-calm").themePreset, "soft-light");
+  assert.equal(applyComfortPreset(DEFAULT_SYNC_SETTINGS, "soft-dark-calm").themePreset, "soft-dark");
 });
 
 test("sensitive page detection catches common risky contexts", () => {

@@ -1,7 +1,7 @@
 import { PAGE_PROFILES } from "../../shared/page-profile.js";
 import { createPageProfileResult } from "./profile.js";
 
-const COMMUNITY_HINTS = /\b(board|forum|gallery|subreddit|thread|comment|reply|vote|upvote|downvote|댓글|답글|개념글|추천|비추천|갤러리|게시판)\b/i;
+const COMMUNITY_HINTS = /\b(board|forum|gallery|subreddit|thread|comment|reply|vote|upvote|downvote|post)\b|\uAC8C\uC2DC\uD310|\uB313\uAE00|\uB2F5\uAE00|\uCD94\uCC9C|\uBE44\uCD94\uCC9C|\uAC24\uB7EC\uB9AC/i;
 
 export function detectCommunityProfile(documentLike = document) {
   const bodyText = normalizeText(documentLike.body?.innerText || "", 3000);
@@ -19,4 +19,3 @@ export function detectCommunityProfile(documentLike = document) {
 function normalizeText(value, maxLength) {
   return String(value || "").replace(/\s+/g, " ").trim().slice(0, maxLength);
 }
-

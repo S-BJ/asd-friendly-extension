@@ -83,7 +83,7 @@
     uiLanguage: "auto",
     firstRunComplete: false,
     activeComfortPreset: "minimal-safe",
-    themePreset: "soft-light",
+    themePreset: "original",
     textScale: 100,
     lineHeight: 1.7,
     pageDensity: "normal",
@@ -364,6 +364,7 @@
   let siteOverrides = {};
   let currentProfile = PAGE_PROFILES.generic;
   let currentCommunitySubtype = COMMUNITY_SUBTYPES.none;
+  let currentReaderTarget = null;
   let currentSensitivePageKind = SENSITIVE_PAGE_KINDS.none;
   let indicator = null;
   let ruler = null;
@@ -570,7 +571,12 @@
     const effective = getEffectiveSettings(syncSettings, override);
     const enabled = Boolean(effective.enabled && !override.disabled);
     const sensitiveMode = currentSensitivePageKind !== SENSITIVE_PAGE_KINDS.none;
-    const themeActive = Boolean(enabled && !override.keepOriginalColors && !sensitiveMode);
+    const themeActive = Boolean(
+      enabled &&
+        !override.keepOriginalColors &&
+        !sensitiveMode &&
+        effective.themePreset !== "original"
+    );
     const forceLight = Boolean(themeActive && effective.themePreset !== "soft-dark");
 
     root.dataset.asdProfile = currentProfile;
@@ -614,6 +620,7 @@
     root.style.setProperty("--asd-border", theme.border || "rgba(63, 111, 143, 0.24)");
 
     if (enabled && effective.muteAutoplay) pauseAutoplayMedia();
+    syncReaderTarget(enabled && effective.readerMode && currentProfile === PAGE_PROFILES.reader);
     syncAdRemoval(enabled && effective.adRemovalEnabled);
     syncBackgroundImageSoftening(enabled && effective.imageSofteningEnabled);
     if (IS_TOP_FRAME) {
@@ -626,6 +633,7 @@
   }
 
   function refreshPageClassification() {
+    currentReaderTarget = null;
     currentSensitivePageKind = detectSensitivePageKind({
       url: location.href,
       title: document.title || "",
@@ -646,7 +654,8 @@
       return;
     }
 
-    if (detectReaderProfile()) {
+    currentReaderTarget = findReaderTarget();
+    if (currentReaderTarget) {
       currentProfile = PAGE_PROFILES.reader;
       currentCommunitySubtype = COMMUNITY_SUBTYPES.none;
       return;
@@ -694,13 +703,45 @@
     });
   }
 
-  function detectReaderProfile() {
-    const article = document.querySelector("article, main, [role='main']");
-    if (!article) return false;
+  function findReaderTarget() {
+    const candidates = [...document.querySelectorAll([
+      "article",
+      "main",
+      "[role='main']",
+      "[role='article']",
+      "[class*='article' i]",
+      "[class*='entry-content' i]",
+      "[class*='post-content' i]",
+      "[class*='content-body' i]",
+      "[id*='content' i]"
+    ].join(","))].filter(isVisibleElement);
 
-    const paragraphs = article.querySelectorAll("p").length;
-    const textLength = normalizeText(article.innerText || "", 6000).length;
-    return paragraphs >= 4 && textLength >= 1200;
+    let best = null;
+    let bestScore = 0;
+
+    for (const candidate of candidates) {
+      const score = scoreReaderCandidate(candidate);
+      if (score > bestScore) {
+        best = candidate;
+        bestScore = score;
+      }
+    }
+
+    return bestScore >= 1 ? best : null;
+  }
+
+  function scoreReaderCandidate(element) {
+    const paragraphs = element.querySelectorAll("p").length;
+    const headings = element.querySelectorAll("h1, h2, h3").length;
+    const links = element.querySelectorAll("a[href]").length;
+    const textLength = normalizeText(element.innerText || "", 8000).length;
+    const linkHeavy = links > Math.max(10, paragraphs * 8) && textLength < 2200;
+
+    if (linkHeavy || paragraphs < 2 || textLength < 800) return 0;
+    if (paragraphs >= 4 && textLength >= 1200) return textLength + paragraphs * 180 + headings * 90 - links * 25;
+    if (paragraphs >= 3 && textLength >= 950 && headings >= 1) return textLength + paragraphs * 150 + headings * 90 - links * 25;
+    if (paragraphs >= 2 && textLength >= 1500 && headings >= 1) return textLength + paragraphs * 120 + headings * 90 - links * 25;
+    return 0;
   }
 
   function detectPortalProfile() {
@@ -925,6 +966,19 @@
 
     body.classList.toggle("theseed-dark-mode", Boolean(themeBridgeState.hadDarkMode));
     body.classList.toggle("theseed-light-mode", Boolean(themeBridgeState.hadLightMode));
+  }
+
+  function syncReaderTarget(shouldEnable) {
+    document.querySelectorAll("[data-asd-reader-target]").forEach((element) => {
+      if (element !== currentReaderTarget) element.removeAttribute("data-asd-reader-target");
+    });
+
+    if (!shouldEnable || !currentReaderTarget?.isConnected) {
+      if (currentReaderTarget) currentReaderTarget.removeAttribute("data-asd-reader-target");
+      return;
+    }
+
+    currentReaderTarget.setAttribute("data-asd-reader-target", "1");
   }
 
   function supportsTheSeedThemeBridge(body) {
@@ -2208,7 +2262,15 @@
       settings.showActiveStateIndicator,
       DEFAULT_SETTINGS.showActiveStateIndicator
     );
-    settings.themePreset = THEMES[settings.themePreset] ? settings.themePreset : DEFAULT_SETTINGS.themePreset;
+    settings.themePreset = settings.themePreset === "original" || THEMES[settings.themePreset]
+      ? settings.themePreset
+      : DEFAULT_SETTINGS.themePreset;
+    if (
+      ["minimal-safe", "text-focused", "motion-minimal"].includes(settings.activeComfortPreset) &&
+      settings.themePreset === "soft-light"
+    ) {
+      settings.themePreset = "original";
+    }
     settings.pageDensity = normalizePageDensity(settings.pageDensity);
     settings.imageSofteningStrength = normalizeImageSofteningStrength(settings.imageSofteningStrength);
     settings.textScale = clampInteger(settings.textScale, 80, 140, DEFAULT_SETTINGS.textScale);

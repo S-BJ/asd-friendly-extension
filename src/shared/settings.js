@@ -1,4 +1,5 @@
 export const THEME_PRESETS = Object.freeze({
+  original: "original",
   softLight: "soft-light",
   softDark: "soft-dark",
   neutralLowContrast: "neutral-low-contrast"
@@ -21,7 +22,7 @@ export const DEFAULT_SYNC_SETTINGS = Object.freeze({
   uiLanguage: "auto",
   firstRunComplete: false,
   activeComfortPreset: "minimal-safe",
-  themePreset: THEME_PRESETS.softLight,
+  themePreset: THEME_PRESETS.original,
   textScale: 100,
   lineHeight: 1.7,
   pageDensity: PAGE_DENSITIES.normal,
@@ -80,7 +81,7 @@ const BOOLEAN_SYNC_KEYS = Object.freeze([
 
 export const COMFORT_PRESETS = Object.freeze({
   "minimal-safe": Object.freeze({
-    themePreset: THEME_PRESETS.softLight,
+    themePreset: THEME_PRESETS.original,
     pageDensity: PAGE_DENSITIES.normal,
     textScale: 100,
     lineHeight: 1.7,
@@ -115,6 +116,7 @@ export const COMFORT_PRESETS = Object.freeze({
     aiGentleSuggestions: true
   }),
   "text-focused": Object.freeze({
+    themePreset: THEME_PRESETS.original,
     textScale: 110,
     lineHeight: 1.8,
     pageDensity: PAGE_DENSITIES.spacious,
@@ -126,6 +128,7 @@ export const COMFORT_PRESETS = Object.freeze({
     readerMode: false
   }),
   "motion-minimal": Object.freeze({
+    themePreset: THEME_PRESETS.original,
     reduceMotion: true,
     muteAutoplay: true,
     readableFontEnabled: true,
@@ -145,6 +148,12 @@ export function normalizeSyncSettings(value = {}) {
   settings.lineHeight = clampNumber(settings.lineHeight, 1.4, 2.1, DEFAULT_SYNC_SETTINGS.lineHeight);
   settings.pageDensity = normalizeEnum(settings.pageDensity, PAGE_DENSITIES, DEFAULT_SYNC_SETTINGS.pageDensity);
   settings.themePreset = normalizeEnum(settings.themePreset, THEME_PRESETS, DEFAULT_SYNC_SETTINGS.themePreset);
+  if (
+    ["minimal-safe", "text-focused", "motion-minimal"].includes(settings.activeComfortPreset) &&
+    settings.themePreset === THEME_PRESETS.softLight
+  ) {
+    settings.themePreset = THEME_PRESETS.original;
+  }
   settings.imageSofteningStrength = normalizeEnum(
     settings.imageSofteningStrength,
     IMAGE_SOFTENING_STRENGTHS,
