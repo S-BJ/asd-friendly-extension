@@ -44,7 +44,7 @@ const OPENAI_MODEL = normalizeOpenAIModel(process.env.OPENAI_MODEL || DEFAULT_OP
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || "";
 const ALLOW_ANY_EXTENSION_ORIGIN = normalizeEnvBoolean(
   process.env.ASD_FRIENDLY_ALLOW_ANY_EXTENSION_ORIGIN,
-  true
+  false
 );
 const ALLOWED_EXTENSION_ORIGINS = resolveAllowedExtensionOrigins(process.env.ALLOWED_EXTENSION_ORIGINS, {
   allowAnyExtensionOriginByDefault: ALLOW_ANY_EXTENSION_ORIGIN,

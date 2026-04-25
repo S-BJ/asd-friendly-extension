@@ -68,7 +68,7 @@ For a disposable browser profile, you can also launch the built extension direct
 powershell -ExecutionPolicy Bypass -File .\scripts\launch-isolated-chrome.ps1 -Browser edge
 ```
 
-The local backend accepts unpacked Chrome extension origins by default so local builds work without knowing the generated extension ID. Set `ALLOWED_EXTENSION_ORIGINS` to one or more exact `chrome-extension://...` origins, or set `ASD_FRIENDLY_ALLOW_ANY_EXTENSION_ORIGIN=0`, if you want to restrict it.
+The local backend only accepts requests from the fixed packaged extension ID by default, so other Chrome extensions on the same machine cannot use your OpenAI key. For unpacked builds, set `ALLOWED_EXTENSION_ORIGINS` to your generated `chrome-extension://...` origin (or a comma/space-separated list). If you really want to accept any unpacked extension during local development, set `ASD_FRIENDLY_ALLOW_ANY_EXTENSION_ORIGIN=1`.
 
 ## Site Audit
 

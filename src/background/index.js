@@ -26,6 +26,7 @@ const UI_TEXT = {
     pageContextUnavailable: "This page did not expose enough visible content to explain yet.",
     formContextUnavailable: "This page did not expose a form I can explain.",
     pageBlocked: "This page does not allow the extension to read its content. Restricted pages such as chrome:// or the Chrome Web Store are blocked.",
+    sensitivePageBlocked: "AI helper is off on this page because it looks like a sign-in, payment, identity, or upload screen. Open a regular page to use AI.",
     backendOffline: "The self-hosted AI backend is not reachable.",
     backendInvalid: "The AI service returned an invalid response.",
     requestTimedOut: "The AI request did not finish in time. Try again.",
@@ -59,6 +60,7 @@ const UI_TEXT = {
     pageContextUnavailable: "\uc774 \ud398\uc774\uc9c0\uc5d0\uc11c\ub294 \uc124\uba85\uc5d0 \ud544\uc694\ud55c \ubcf4\uc774\ub294 \uc815\ubcf4\ub97c \ucda9\ubd84\ud788 \uac00\uc838\uc624\uc9c0 \ubabb\ud588\uc5b4\uc694.",
     formContextUnavailable: "\uc124\uba85\ud560 \uc218 \uc788\ub294 \ud3fc\uc744 \uc774 \ud398\uc774\uc9c0\uc5d0\uc11c \ucc3e\uc9c0 \ubabb\ud588\uc5b4\uc694.",
     pageBlocked: "\uc774 \ud398\uc774\uc9c0\ub294 \ud655\uc7a5 \ud504\ub85c\uadf8\ub7a8\uc774 \ub0b4\uc6a9\uc744 \uc77d\uc744 \uc218 \uc5c6\uc5b4\uc694. chrome:// \ud398\uc774\uc9c0\ub098 \ud06c\ub86c \uc6f9\uc2a4\ud1a0\uc5b4 \uac19\uc740 \uc81c\ud55c \ud398\uc774\uc9c0\ub294 \uc9c0\uc6d0\ud558\uc9c0 \uc54a\uc544\uc694.",
+    sensitivePageBlocked: "\ub85c\uadf8\uc778, \uacb0\uc81c, \ubcf8\uc778\uc778\uc99d, \uc5c5\ub85c\ub4dc \ud398\uc774\uc9c0\ub85c \ubcf4\uc5ec\uc11c AI \ub3c4\uc6c0\uc744 \uaed0\uc5b4\uc694. \uc77c\ubc18 \ud398\uc774\uc9c0\uc5d0\uc11c \ub2e4\uc2dc \uc2dc\ub3c4\ud574 \uc8fc\uc138\uc694.",
     backendOffline: "\uc790\uccb4 \ud638\uc2a4\ud305 AI \ubc31\uc5d4\ub4dc\uc5d0 \uc5f0\uacb0\ud560 \uc218 \uc5c6\uc5b4\uc694.",
     backendInvalid: "AI \uc11c\ube44\uc2a4\uac00 \uc62c\ubc14\ub978 \uc751\ub2f5\uc744 \ubcf4\ub0b4\uc9c0 \ubabb\ud588\uc5b4\uc694.",
     requestTimedOut: "AI \uc694\uccad\uc774 \uc2dc\uac04 \uc548\uc5d0 \ub05d\ub098\uc9c0 \ubabb\ud588\uc5b4\uc694. \ub2e4\uc2dc \uc2dc\ub3c4\ud574 \uc8fc\uc138\uc694.",
@@ -352,10 +354,11 @@ async function runAiWorkflow({ message, sender, requestType, contextMessageType,
     throw new Error(t(locale, "regularPageRequired"));
   }
 
-  const context = withPreferredResponseLanguage(
-    await getTabContext(tab, contextMessageType, locale),
-    locale
-  );
+  const rawContext = await getTabContext(tab, contextMessageType, locale);
+  if (isSensitiveContext(rawContext)) {
+    throw new Error(t(locale, "sensitivePageBlocked"));
+  }
+  const context = withPreferredResponseLanguage(rawContext, locale);
   return runAiRequestForTab({
     tab,
     locale,
@@ -380,14 +383,13 @@ async function runUnifiedPageWorkflow({ message, sender, tab: tabOverride, local
     throw new Error(t(locale, "regularPageRequired"));
   }
 
-  const pageContext = withPreferredResponseLanguage(
-    await getTabContext(tab, MESSAGE_TYPES.getPageContext, locale),
-    locale
-  );
-  const formContext = withPreferredResponseLanguage(
-    await getOptionalTabContext(tab, MESSAGE_TYPES.getFormContext),
-    locale
-  );
+  const rawPageContext = await getTabContext(tab, MESSAGE_TYPES.getPageContext, locale);
+  const rawFormContext = await getOptionalTabContext(tab, MESSAGE_TYPES.getFormContext);
+  if (isSensitiveContext(rawPageContext) || isSensitiveContext(rawFormContext)) {
+    throw new Error(t(locale, "sensitivePageBlocked"));
+  }
+  const pageContext = withPreferredResponseLanguage(rawPageContext, locale);
+  const formContext = withPreferredResponseLanguage(rawFormContext, locale);
 
   return runUnifiedPageRequestForTab({
     tab,
@@ -405,10 +407,10 @@ async function runAiShortcutCommand() {
   const tab = await resolveTargetTab(null, null);
   if (!isSupportedPageUrl(tab?.url)) return;
 
-  const selectionContext = withPreferredResponseLanguage(
-    await getTabContext(tab, MESSAGE_TYPES.getSelectionContext, locale),
-    locale
-  );
+  const rawSelectionContext = await getTabContext(tab, MESSAGE_TYPES.getSelectionContext, locale);
+  if (isSensitiveContext(rawSelectionContext)) return;
+
+  const selectionContext = withPreferredResponseLanguage(rawSelectionContext, locale);
   if (selectionContext?.selectionText) {
     await runAiRequestForTab({
       tab,
@@ -616,6 +618,11 @@ async function ensureContentScriptInjected(tab) {
     console.warn("[asd] executeScript failed", error);
     return false;
   }
+}
+
+function isSensitiveContext(context) {
+  const kind = context?.sensitivePageKind;
+  return typeof kind === "string" && kind && kind !== "none";
 }
 
 function hasPageContext(context) {

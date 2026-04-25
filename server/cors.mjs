@@ -2,7 +2,7 @@ const DEFAULT_EXTENSION_ID = "nibpcfbgiokcjajcglmappiehobcljjj";
 
 export function resolveAllowedExtensionOrigins(rawValue, options = {}) {
   const fixedExtensionId = options.fixedExtensionId || DEFAULT_EXTENSION_ID;
-  const allowAnyByDefault = options.allowAnyExtensionOriginByDefault !== false;
+  const allowAnyByDefault = options.allowAnyExtensionOriginByDefault === true;
   const tokens = String(rawValue || "")
     .split(/[,\s]+/)
     .map((item) => item.trim())

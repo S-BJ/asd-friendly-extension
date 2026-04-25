@@ -6,10 +6,26 @@ import {
   resolveAllowedOrigin
 } from "../server/cors.mjs";
 
-test("default backend CORS policy accepts unpacked extension origins", () => {
+test("default backend CORS policy restricts to the fixed extension ID", () => {
   const policy = resolveAllowedExtensionOrigins("");
+  assert.equal(policy.allowAnyExtensionOrigin, false);
+  assert.equal(
+    resolveAllowedOrigin("chrome-extension://nibpcfbgiokcjajcglmappiehobcljjj", policy, 8787),
+    "chrome-extension://nibpcfbgiokcjajcglmappiehobcljjj"
+  );
+  assert.equal(
+    resolveAllowedOrigin("chrome-extension://abcdefghijklmnopabcdefghijklmnop", policy, 8787),
+    false
+  );
+});
+
+test("opt-in wildcard accepts any unpacked extension origin", () => {
+  const policy = resolveAllowedExtensionOrigins("", { allowAnyExtensionOriginByDefault: true });
   assert.equal(policy.allowAnyExtensionOrigin, true);
-  assert.equal(resolveAllowedOrigin("chrome-extension://abcdefghijklmnopabcdefghijklmnop", policy, 8787), "chrome-extension://abcdefghijklmnopabcdefghijklmnop");
+  assert.equal(
+    resolveAllowedOrigin("chrome-extension://abcdefghijklmnopabcdefghijklmnop", policy, 8787),
+    "chrome-extension://abcdefghijklmnopabcdefghijklmnop"
+  );
 });
 
 test("configured extension origins restrict other extensions", () => {

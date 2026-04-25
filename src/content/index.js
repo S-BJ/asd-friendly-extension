@@ -1491,6 +1491,7 @@
   }
 
   function getSelectionContext() {
+    refreshPageClassification();
     const selection = window.getSelection();
     const selectionText = normalizeText(selection?.toString() || "", 2000);
     const range = selection && selection.rangeCount > 0 ? selection.getRangeAt(0) : null;
@@ -1503,7 +1504,8 @@
       pageTitle: document.title || "",
       pageUrl: location.href,
       pageLanguage: document.documentElement.lang || "",
-      browserLanguage: navigator.language || ""
+      browserLanguage: navigator.language || "",
+      sensitivePageKind: currentSensitivePageKind
     };
   }
 
@@ -1519,11 +1521,13 @@
       keyActions: collectKeyActions(),
       importantTextSnippets: collectImportantTextSnippets(),
       visibleCommunityItems: currentProfile === PAGE_PROFILES.community ? collectVisibleCommunityItems() : [],
-      browserLanguage: navigator.language || ""
+      browserLanguage: navigator.language || "",
+      sensitivePageKind: currentSensitivePageKind
     };
   }
 
   function getFormContext() {
+    refreshPageClassification();
     const form = findRelevantForm();
     const warnings = form ? collectFormWarnings(form) : [];
 
@@ -1534,7 +1538,8 @@
       fields: form ? collectFormFields(form) : [],
       buttons: form ? collectFormButtons(form) : [],
       warnings,
-      browserLanguage: navigator.language || ""
+      browserLanguage: navigator.language || "",
+      sensitivePageKind: currentSensitivePageKind
     };
   }
 

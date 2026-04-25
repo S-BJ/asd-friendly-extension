@@ -114,6 +114,28 @@ test("ad blocking has a toggleable network ruleset and active-tab runtime inject
   assert.ok(parsedRules.some((rule) => /googlesyndication/.test(rule.condition?.urlFilter || "")));
 });
 
+test("AI workflows refuse to send context from sensitive pages", async () => {
+  const [background, content] = await Promise.all([
+    readFile(new URL("../src/background/index.js", import.meta.url), "utf8"),
+    readFile(new URL("../src/content/index.js", import.meta.url), "utf8")
+  ]);
+
+  for (const fn of ["getSelectionContext", "getPageContext", "getFormContext"]) {
+    const block = content.match(new RegExp(`function ${fn}\\([^)]*\\)\\s*\\{[\\s\\S]*?\\n\\s\\s\\}`));
+    assert.ok(block, `expected ${fn} body to be present`);
+    assert.match(block[0], /sensitivePageKind:\s*currentSensitivePageKind/);
+    assert.match(block[0], /refreshPageClassification\(\)/);
+  }
+
+  assert.match(background, /function isSensitiveContext\(/);
+  assert.match(background, /sensitivePageBlocked/);
+  for (const fn of ["runAiWorkflow", "runUnifiedPageWorkflow", "runAiShortcutCommand"]) {
+    const block = background.match(new RegExp(`async function ${fn}\\([^)]*\\)\\s*\\{[\\s\\S]*?\\n\\}`));
+    assert.ok(block, `expected ${fn} body to be present`);
+    assert.match(block[0], /isSensitiveContext\(/);
+  }
+});
+
 test("build excludes test-only runtime helpers from packaged extension", async () => {
   const buildScript = await readFile(new URL("../scripts/build-extension.mjs", import.meta.url), "utf8");
 
