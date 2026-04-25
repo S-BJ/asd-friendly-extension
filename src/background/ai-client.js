@@ -1,4 +1,5 @@
 import { normalizeLocalSettings } from "../shared/settings.js";
+import { DEFAULT_OPENAI_MODEL, normalizeOpenAIModel } from "../shared/openai-models.js";
 import {
   EXPLANATION_SCHEMA,
   FORM_EXPLANATION_SCHEMA,
@@ -20,7 +21,6 @@ import {
 } from "../shared/ai-normalize.js";
 
 const OPENAI_API_URL = "https://api.openai.com/v1/responses";
-const DEFAULT_OPENAI_MODEL = "gpt-4o-2024-11-20";
 const REQUEST_TIMEOUT_MS = 30_000;
 
 export const AI_CLIENT_ERROR_CODES = Object.freeze({
@@ -34,7 +34,7 @@ export const AI_CLIENT_ERROR_CODES = Object.freeze({
 export async function requestSelectionExplanation(localSettings, context) {
   const settings = normalizeLocalSettings(localSettings);
   if (settings.openAIApiKey) {
-    return requestSelectionDirect(settings.openAIApiKey, context);
+    return requestSelectionDirect(settings.openAIApiKey, settings.openAIModel, context);
   }
   if (settings.backendUrl) {
     return requestSelectionThroughBackend(settings, context);
@@ -48,7 +48,7 @@ export async function requestSelectionExplanation(localSettings, context) {
 export async function requestPageSummary(localSettings, context) {
   const settings = normalizeLocalSettings(localSettings);
   if (settings.openAIApiKey) {
-    return requestPageDirect(settings.openAIApiKey, context);
+    return requestPageDirect(settings.openAIApiKey, settings.openAIModel, context);
   }
   if (settings.backendUrl) {
     return requestPageThroughBackend(settings, context);
@@ -62,7 +62,7 @@ export async function requestPageSummary(localSettings, context) {
 export async function requestFormExplanation(localSettings, context) {
   const settings = normalizeLocalSettings(localSettings);
   if (settings.openAIApiKey) {
-    return requestFormDirect(settings.openAIApiKey, context);
+    return requestFormDirect(settings.openAIApiKey, settings.openAIModel, context);
   }
   if (settings.backendUrl) {
     return requestFormThroughBackend(settings, context);
@@ -73,8 +73,9 @@ export async function requestFormExplanation(localSettings, context) {
   );
 }
 
-async function requestSelectionDirect(apiKey, context) {
+async function requestSelectionDirect(apiKey, model, context) {
   const normalizedContext = normalizeSelectionContext(context);
+  const openAIModel = normalizeOpenAIModel(model);
   if (!normalizedContext.selectionText) {
     throw createAiClientError(AI_CLIENT_ERROR_CODES.requestFailed, "No selected text was provided.");
   }
@@ -83,36 +84,40 @@ async function requestSelectionDirect(apiKey, context) {
     apiKey,
     name: "selection_explanation",
     schema: EXPLANATION_SCHEMA,
+    model: openAIModel,
     maxOutputTokens: 500,
     instructions: buildSelectionInstructions(normalizedContext),
     contentText: buildSelectionContentText(normalizedContext)
   });
 
   return {
-    model: DEFAULT_OPENAI_MODEL,
+    model: openAIModel,
     payload: shapeSelectionPayload(parsed)
   };
 }
 
-async function requestPageDirect(apiKey, context) {
+async function requestPageDirect(apiKey, model, context) {
   const normalizedContext = normalizePageContext(context);
+  const openAIModel = normalizeOpenAIModel(model);
   const parsed = await requestStructuredOutput({
     apiKey,
     name: "page_summary",
     schema: PAGE_SUMMARY_SCHEMA,
+    model: openAIModel,
     maxOutputTokens: 900,
     instructions: buildPageInstructions(normalizedContext),
     contentText: JSON.stringify(normalizedContext, null, 2)
   });
 
   return {
-    model: DEFAULT_OPENAI_MODEL,
+    model: openAIModel,
     payload: shapePageSummaryPayload(parsed)
   };
 }
 
-async function requestFormDirect(apiKey, context) {
+async function requestFormDirect(apiKey, model, context) {
   const normalizedContext = normalizeFormContext(context);
+  const openAIModel = normalizeOpenAIModel(model);
   if (normalizedContext.fields.length === 0) {
     throw createAiClientError(AI_CLIENT_ERROR_CODES.requestFailed, "No form fields were provided.");
   }
@@ -121,13 +126,14 @@ async function requestFormDirect(apiKey, context) {
     apiKey,
     name: "form_explanation",
     schema: FORM_EXPLANATION_SCHEMA,
+    model: openAIModel,
     maxOutputTokens: 1000,
     instructions: buildFormInstructions(normalizedContext),
     contentText: JSON.stringify(normalizedContext, null, 2)
   });
 
   return {
-    model: DEFAULT_OPENAI_MODEL,
+    model: openAIModel,
     payload: shapeFormPayload(parsed)
   };
 }
@@ -156,7 +162,8 @@ async function requestFormThroughBackend(settings, context) {
   };
 }
 
-async function requestStructuredOutput({ apiKey, name, schema, maxOutputTokens, instructions, contentText }) {
+async function requestStructuredOutput({ apiKey, model = DEFAULT_OPENAI_MODEL, name, schema, maxOutputTokens, instructions, contentText }) {
+  const openAIModel = normalizeOpenAIModel(model);
   let response;
   try {
     response = await fetchWithTimeout(OPENAI_API_URL, {
@@ -166,7 +173,7 @@ async function requestStructuredOutput({ apiKey, name, schema, maxOutputTokens, 
         Authorization: `Bearer ${apiKey}`
       },
       body: JSON.stringify({
-        model: DEFAULT_OPENAI_MODEL,
+        model: openAIModel,
         max_output_tokens: maxOutputTokens,
         instructions,
         input: [
@@ -248,14 +255,18 @@ async function requestStructuredOutput({ apiKey, name, schema, maxOutputTokens, 
 }
 
 async function postJson(localSettings, path, payload) {
+  const settings = normalizeLocalSettings(localSettings);
   let response;
   try {
-    response = await fetchWithTimeout(`${localSettings.backendUrl}${path}`, {
+    response = await fetchWithTimeout(`${settings.backendUrl}${path}`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json"
       },
-      body: JSON.stringify(payload)
+      body: JSON.stringify({
+        ...payload,
+        openAIModel: settings.openAIModel
+      })
     });
   } catch (error) {
     if (error?.name === "AbortError") {

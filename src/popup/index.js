@@ -1,5 +1,6 @@
 import { resolveLocale as resolveUiLocale } from "../shared/i18n.js";
 import { MESSAGE_TYPES } from "../shared/messages.js";
+import { OPENAI_MODELS } from "../shared/openai-models.js";
 import {
   DEFAULT_SITE_OVERRIDE,
   normalizeLocalSettings,
@@ -18,6 +19,7 @@ const aiStatusElement = document.getElementById("ai-status");
 const originLabel = document.getElementById("origin-label");
 const firstRunPanel = document.getElementById("first-run-panel");
 const apiKeyInput = document.getElementById("openAIApiKey");
+const openAIModelSelect = document.getElementById("openAIModel");
 const toggleApiKeyButton = document.getElementById("toggle-api-key");
 const clearApiKeyButton = document.getElementById("clear-api-key");
 const backendUrlInput = document.getElementById("backendUrl");
@@ -67,6 +69,8 @@ const I18N = {
     aiHelperHeading: "AI helper",
     aiHelperCopy: "Enter an OpenAI API key for direct use. A self-hosted backend URL is optional.",
     aiHelperToggle: "AI helper",
+    openAIModelLabel: "OpenAI model",
+    openAIModelNote: "Used for direct API calls and request-scoped backend calls.",
     apiKeyLabel: "OpenAI API key",
     backendUrlLabel: "Self-hosted backend URL (optional)",
     explainSelectionButton: "Explain selected text",
@@ -152,6 +156,8 @@ const I18N = {
     aiHelperHeading: "AI 도움",
     aiHelperCopy: "OpenAI API 키를 넣으면 바로 사용할 수 있어요. 자체 호스팅 백엔드 URL은 선택 사항이에요.",
     aiHelperToggle: "AI 도움",
+    openAIModelLabel: "OpenAI 모델",
+    openAIModelNote: "직접 API 호출과 백엔드 요청별 호출에 사용돼요.",
     apiKeyLabel: "OpenAI API 키",
     backendUrlLabel: "자체 호스팅 백엔드 URL (선택)",
     explainSelectionButton: "선택한 텍스트 설명",
@@ -250,6 +256,10 @@ backendUrlInput.addEventListener("change", () => {
   void saveLocalSetting("backendUrl", backendUrlInput.value.trim());
 });
 
+openAIModelSelect.addEventListener("change", () => {
+  void saveLocalSetting("openAIModel", openAIModelSelect.value);
+});
+
 explainSelectionButton.addEventListener("click", () => {
   void runAiAction("selection");
 });
@@ -265,6 +275,7 @@ explainFormButton.addEventListener("click", () => {
 void load();
 
 async function load() {
+  renderOpenAIModelOptions();
   const [settingsResponse, localResponse, tab] = await Promise.all([
     sendRuntimeMessage({ type: MESSAGE_TYPES.getSettings }),
     sendRuntimeMessage({ type: MESSAGE_TYPES.getLocalSettings }),
@@ -294,6 +305,7 @@ function render() {
   });
 
   apiKeyInput.value = localSettings.openAIApiKey || "";
+  openAIModelSelect.value = localSettings.openAIModel || OPENAI_MODELS[0].id;
   backendUrlInput.value = localSettings.backendUrl || "";
   originLabel.textContent = activeOrigin || t("regularTabMissing");
 
@@ -309,6 +321,17 @@ function applyLocale() {
     if (!key) return;
     element.textContent = t(key);
   });
+}
+
+function renderOpenAIModelOptions() {
+  openAIModelSelect.replaceChildren(
+    ...OPENAI_MODELS.map((model) => {
+      const option = document.createElement("option");
+      option.value = model.id;
+      option.textContent = `${model.label} - ${model.description}`;
+      return option;
+    })
+  );
 }
 
 function renderFirstRun() {

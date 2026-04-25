@@ -26,8 +26,10 @@ test("popup exposes all background AI actions", async () => {
   assert.match(html, /id="explain-selection"/);
   assert.match(html, /id="explain-page"/);
   assert.match(html, /id="explain-form"/);
+  assert.match(html, /id="openAIModel"/);
   assert.match(script, /MESSAGE_TYPES\.explainForm/);
   assert.match(script, /runAiAction\("form"\)/);
+  assert.match(script, /OPENAI_MODELS/);
 });
 
 test("popup exposes conservative preset and page density controls", async () => {
@@ -128,11 +130,18 @@ test("page AI schema includes action and uncertainty fields", async () => {
 });
 
 test("AI client and server share the same schema source", async () => {
-  const [client, server] = await Promise.all([
+  const [client, server, popup, auditScript] = await Promise.all([
     readFile(new URL("../src/background/ai-client.js", import.meta.url), "utf8"),
-    readFile(new URL("../server/index.mjs", import.meta.url), "utf8")
+    readFile(new URL("../server/index.mjs", import.meta.url), "utf8"),
+    readFile(new URL("../src/popup/index.js", import.meta.url), "utf8"),
+    readFile(new URL("../scripts/audit-extension-sites.mjs", import.meta.url), "utf8")
   ]);
 
   assert.match(client, /from "\.\.\/shared\/ai-schemas\.js"/);
   assert.match(server, /from "\.\.\/src\/shared\/ai-schemas\.js"/);
+  assert.match(client, /from "\.\.\/shared\/openai-models\.js"/);
+  assert.match(server, /from "\.\.\/src\/shared\/openai-models\.js"/);
+  assert.match(popup, /from "\.\.\/shared\/openai-models\.js"/);
+  assert.match(auditScript, /from "\.\.\/src\/shared\/openai-models\.js"/);
+  assert.doesNotMatch(client + server + auditScript, new RegExp("gpt-4o" + "-2024-11-20"));
 });

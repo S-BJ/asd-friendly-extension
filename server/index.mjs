@@ -27,6 +27,7 @@ import {
   shapePageSummaryPayload,
   shapeSelectionPayload
 } from "../src/shared/ai-normalize.js";
+import { DEFAULT_OPENAI_MODEL, OPENAI_MODELS, normalizeOpenAIModel } from "../src/shared/openai-models.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const FIXED_EXTENSION_ID = "nibpcfbgiokcjajcglmappiehobcljjj";
@@ -39,7 +40,7 @@ loadEnvFile(EXTERNAL_ENV_PATH);
 loadEnvFile(LOCAL_ENV_PATH);
 
 const PORT = Number.parseInt(process.env.PORT || "8787", 10);
-const OPENAI_MODEL = process.env.OPENAI_MODEL || "gpt-4o-2024-11-20";
+const OPENAI_MODEL = normalizeOpenAIModel(process.env.OPENAI_MODEL || DEFAULT_OPENAI_MODEL);
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || "";
 const ALLOW_ANY_EXTENSION_ORIGIN = normalizeEnvBoolean(
   process.env.ASD_FRIENDLY_ALLOW_ANY_EXTENSION_ORIGIN,
@@ -73,6 +74,7 @@ const server = createServer(async (req, res) => {
       ok: true,
       service: "asd-friendly-openai-backend",
       model: OPENAI_MODEL,
+      supportedModels: OPENAI_MODELS.map((model) => model.id),
       apiKeyConfigured: Boolean(OPENAI_API_KEY),
       requestScopedApiKeySupported: true,
       extensionOriginPolicy: ALLOWED_EXTENSION_ORIGINS.allowAnyExtensionOrigin
@@ -88,6 +90,7 @@ const server = createServer(async (req, res) => {
       ensureApiKey(apiKey);
 
       const body = await readJsonBody(req);
+      const model = resolveOpenAIModel(body);
       const context = normalizeSelectionContext({ ...body, pageLanguage: body.pageLanguage });
 
       if (!context.selectionText) {
@@ -98,11 +101,11 @@ const server = createServer(async (req, res) => {
         return;
       }
 
-      const explanation = await explainSelection(context, apiKey);
+      const explanation = await explainSelection(context, apiKey, model);
 
       writeJson(res, 200, {
         ok: true,
-        model: OPENAI_MODEL,
+        model,
         explanation
       });
     } catch (error) {
@@ -120,12 +123,13 @@ const server = createServer(async (req, res) => {
       ensureApiKey(apiKey);
 
       const body = await readJsonBody(req);
+      const model = resolveOpenAIModel(body);
       const context = normalizePageContext(body);
-      const summary = await summarizePage(context, apiKey);
+      const summary = await summarizePage(context, apiKey, model);
 
       writeJson(res, 200, {
         ok: true,
-        model: OPENAI_MODEL,
+        model,
         summary
       });
     } catch (error) {
@@ -143,6 +147,7 @@ const server = createServer(async (req, res) => {
       ensureApiKey(apiKey);
 
       const body = await readJsonBody(req);
+      const model = resolveOpenAIModel(body);
       const context = normalizeFormContext(body);
 
       if (context.fields.length === 0) {
@@ -153,11 +158,11 @@ const server = createServer(async (req, res) => {
         return;
       }
 
-      const explanation = await explainForm(context, apiKey);
+      const explanation = await explainForm(context, apiKey, model);
 
       writeJson(res, 200, {
         ok: true,
-        model: OPENAI_MODEL,
+        model,
         explanation
       });
     } catch (error) {
@@ -179,9 +184,10 @@ server.listen(PORT, "127.0.0.1", () => {
   console.log(`ASD-Friendly OpenAI backend listening on http://127.0.0.1:${PORT}`);
 });
 
-async function explainSelection(context, apiKey) {
+async function explainSelection(context, apiKey, model = OPENAI_MODEL) {
   const parsed = await requestStructuredOutput({
     apiKey,
+    model,
     name: "selection_explanation",
     schema: EXPLANATION_SCHEMA,
     maxOutputTokens: 500,
@@ -191,9 +197,10 @@ async function explainSelection(context, apiKey) {
   return shapeSelectionPayload(parsed);
 }
 
-async function summarizePage(context, apiKey) {
+async function summarizePage(context, apiKey, model = OPENAI_MODEL) {
   const parsed = await requestStructuredOutput({
     apiKey,
+    model,
     name: "page_summary",
     schema: PAGE_SUMMARY_SCHEMA,
     maxOutputTokens: 900,
@@ -203,9 +210,10 @@ async function summarizePage(context, apiKey) {
   return shapePageSummaryPayload(parsed);
 }
 
-async function explainForm(context, apiKey) {
+async function explainForm(context, apiKey, model = OPENAI_MODEL) {
   const parsed = await requestStructuredOutput({
     apiKey,
+    model,
     name: "form_explanation",
     schema: FORM_EXPLANATION_SCHEMA,
     maxOutputTokens: 1000,
@@ -215,7 +223,8 @@ async function explainForm(context, apiKey) {
   return shapeFormPayload(parsed);
 }
 
-async function requestStructuredOutput({ apiKey, name, schema, instructions, contentText, maxOutputTokens }) {
+async function requestStructuredOutput({ apiKey, model = OPENAI_MODEL, name, schema, instructions, contentText, maxOutputTokens }) {
+  const openAIModel = normalizeOpenAIModel(model);
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
@@ -228,7 +237,7 @@ async function requestStructuredOutput({ apiKey, name, schema, instructions, con
         Authorization: `Bearer ${apiKey}`
       },
       body: JSON.stringify({
-        model: OPENAI_MODEL,
+        model: openAIModel,
         max_output_tokens: maxOutputTokens,
         instructions,
         input: [
@@ -297,6 +306,10 @@ function resolveApiKey(req) {
   }
 
   return OPENAI_API_KEY;
+}
+
+function resolveOpenAIModel(body) {
+  return normalizeOpenAIModel(body?.openAIModel || OPENAI_MODEL);
 }
 
 function ensureApiKey(apiKey) {

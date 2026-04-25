@@ -1,6 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { DEFAULT_OPENAI_MODEL } from "../src/shared/openai-models.js";
 
 const port = Number.parseInt(process.env.ASD_AUDIT_CDP_PORT || "9223", 10);
 const timeoutMs = 30_000;
@@ -10,7 +11,7 @@ const contentScriptPath = join(extensionRoot, "content", "index.js");
 const contentStylePath = join(extensionRoot, "content", "styles.css");
 const cliArgs = parseCliArgs(process.argv.slice(2));
 const aiAuditEnabled = cliArgs.flags.has("ai") || process.env.ASD_AUDIT_AI === "1";
-const openAiModel = process.env.ASD_AUDIT_OPENAI_MODEL || process.env.OPENAI_MODEL || "gpt-4o-2024-11-20";
+const openAiModel = process.env.ASD_AUDIT_OPENAI_MODEL || process.env.OPENAI_MODEL || DEFAULT_OPENAI_MODEL;
 const openAiApiKey = process.env.ASD_AUDIT_OPENAI_API_KEY || process.env.OPENAI_API_KEY || "";
 
 const sites = [
