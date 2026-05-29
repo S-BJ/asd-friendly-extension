@@ -724,12 +724,23 @@ function formatAiError(error, locale, requestType) {
 
 function getMessageOrigin(message, sender) {
   const payload = safeObject(message.payload);
-  // When the message comes from a tab (content script) trust the real tab URL
-  // so a page cannot spoof a different origin. Caller-supplied origin is only
-  // used for extension pages (the popup), which have no sender.tab.url.
-  const source = sender?.tab?.url || message.origin || payload.origin || "";
+  // A content script always reports an http(s) tab URL, so trust it to stop a
+  // page from spoofing another origin. Senders without an http(s) tab URL (the
+  // popup, including when opened in a tab as chrome-extension://) fall back to
+  // the caller-supplied origin.
+  const senderOrigin = originFromUrl(sender?.tab?.url || "");
+  const source = isHttpOrigin(senderOrigin) ? senderOrigin : message.origin || payload.origin || "";
   const origin = originFromUrl(source);
-  return /^https?:$/i.test(new URL(origin || "http://x").protocol) && origin ? origin : "";
+  return isHttpOrigin(origin) ? origin : "";
+}
+
+function isHttpOrigin(origin) {
+  if (!origin) return false;
+  try {
+    return /^https?:$/i.test(new URL(origin).protocol);
+  } catch {
+    return false;
+  }
 }
 
 function getSenderTabOrigin(sender) {

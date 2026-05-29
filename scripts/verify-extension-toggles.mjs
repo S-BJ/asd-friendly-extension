@@ -243,6 +243,14 @@ async function snapshot(cdp, sessionId) {
       restoreButtons: document.querySelectorAll("[data-asd-ad-restore-button]").length,
       rulerVisible: !!document.querySelector(".asd-foundation-ruler:not([hidden])"),
       indicatorVisible: !!document.querySelector(".asd-foundation-indicator"),
+      spotlightVisible: !!document.querySelector(".asd-foundation-spotlight:not([hidden])"),
+      progressVisible: !!document.querySelector(".asd-foundation-progress:not([hidden])"),
+      quickToggleVisible: !!document.querySelector(".asd-foundation-quicktoggle:not([hidden])"),
+      chunking: root.hasAttribute("data-asd-chunking"),
+      letterSpacingAttr: root.hasAttribute("data-asd-letter-spacing"),
+      readingWidthAttr: root.hasAttribute("data-asd-reading-width"),
+      readShape: !!document.querySelector("[data-asd-read-shape]"),
+      paragraphLetterSpacing: p ? cs(p).letterSpacing : "",
       videoMuted: video ? video.muted : null,
       videoPaused: video ? video.paused : null,
       paragraphFont: p ? cs(p).fontFamily : "",
@@ -338,6 +346,39 @@ async function main() {
     await setSetting(cdp, popup.sessionId, "lineHeight", 1.7);
     await setSetting(cdp, popup.sessionId, "pageDensity", "normal");
 
+    // ADHD focus & reading supports + quick toggle
+    await setSetting(cdp, popup.sessionId, "focusSpotlight", true);
+    state = await snapshot(cdp, reader.sessionId);
+    checks.push(result("focus spotlight overlay shows", state.spotlightVisible, { spotlightVisible: state.spotlightVisible }));
+    await setSetting(cdp, popup.sessionId, "focusSpotlight", false);
+    state = await snapshot(cdp, reader.sessionId);
+    checks.push(result("focus spotlight off hides overlay", !state.spotlightVisible, { spotlightVisible: state.spotlightVisible }));
+
+    await setSetting(cdp, popup.sessionId, "readingProgress", true);
+    state = await snapshot(cdp, reader.sessionId);
+    checks.push(result("reading progress bar shows on reader page", state.progressVisible, { progressVisible: state.progressVisible }));
+    await setSetting(cdp, popup.sessionId, "readingProgress", false);
+
+    await setSetting(cdp, popup.sessionId, "readerChunking", true);
+    state = await snapshot(cdp, reader.sessionId);
+    checks.push(result("chunking marks read shape on article", state.chunking && state.readShape, { chunking: state.chunking, readShape: state.readShape }));
+    await setSetting(cdp, popup.sessionId, "readerChunking", false);
+
+    await setSetting(cdp, popup.sessionId, "letterSpacing", 0.08);
+    state = await snapshot(cdp, reader.sessionId);
+    checks.push(result("letter spacing applies to paragraphs", state.letterSpacingAttr && parseFloat(state.paragraphLetterSpacing) > 0, { letterSpacingAttr: state.letterSpacingAttr, paragraphLetterSpacing: state.paragraphLetterSpacing }));
+    await setSetting(cdp, popup.sessionId, "letterSpacing", 0);
+
+    await setSetting(cdp, popup.sessionId, "readingWidth", 65);
+    state = await snapshot(cdp, reader.sessionId);
+    checks.push(result("reading width marks read shape", state.readingWidthAttr && state.readShape, { readingWidthAttr: state.readingWidthAttr, readShape: state.readShape }));
+    await setSetting(cdp, popup.sessionId, "readingWidth", 0);
+
+    await setSetting(cdp, popup.sessionId, "showQuickToggle", true);
+    state = await snapshot(cdp, reader.sessionId);
+    checks.push(result("quick toggle button shows when opted in", state.quickToggleVisible, { quickToggleVisible: state.quickToggleVisible }));
+    await setSetting(cdp, popup.sessionId, "showQuickToggle", false);
+
     await setSetting(cdp, popup.sessionId, "themePreset", "soft-dark");
     state = await snapshot(cdp, reader.sessionId);
     checks.push(result("theme preset toggle applies", state.theme === "soft-dark", { theme: state.theme }));
@@ -376,8 +417,13 @@ async function main() {
     const sensitive = await createPage(cdp, `${baseUrl}/sensitive`);
     await setSetting(cdp, popup.sessionId, "imageSofteningEnabled", true);
     await setSetting(cdp, popup.sessionId, "adRemovalEnabled", true);
+    await setSetting(cdp, popup.sessionId, "focusSpotlight", true);
+    await setSetting(cdp, popup.sessionId, "readingProgress", true);
     state = await snapshot(cdp, sensitive.sessionId);
     checks.push(result("sensitive page disables high-variance supports", !!state.sensitive && !state.imageSoftening && !state.adRemoval && state.theme === "original", { sensitive: state.sensitive, imageSoftening: state.imageSoftening, adRemoval: state.adRemoval, theme: state.theme }));
+    checks.push(result("sensitive page suppresses spotlight and progress", !!state.sensitive && !state.spotlightVisible && !state.progressVisible, { sensitive: state.sensitive, spotlightVisible: state.spotlightVisible, progressVisible: state.progressVisible }));
+    await setSetting(cdp, popup.sessionId, "focusSpotlight", false);
+    await setSetting(cdp, popup.sessionId, "readingProgress", false);
 
     await setSetting(cdp, popup.sessionId, "enabled", false);
     state = await snapshot(cdp, reader.sessionId);

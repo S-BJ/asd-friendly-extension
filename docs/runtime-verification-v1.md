@@ -41,6 +41,14 @@ powershell -ExecutionPolicy Bypass -File .\scripts\launch-isolated-chrome.ps1 -B
 $env:ASD_TOGGLE_CDP_PORT="9224"; npm run verify:toggles
 ```
 
+`verify:toggles` exercises foundation toggles **and** the ADHD/quick-toggle features (spotlight, progress, chunking, letter-spacing, reading-width, quick-toggle) plus sensitive-page suppression, against the real browser via CDP. If the MV3 service worker has gone idle, target discovery fails with "Extension ID could not be resolved" — set `ASD_EXTENSION_ID` to the id shown on the extensions page (stable per `--load-extension` path) and rerun:
+
+```powershell
+$env:ASD_TOGGLE_CDP_PORT="9224"; $env:ASD_EXTENSION_ID="<id>"; npm run verify:toggles
+```
+
+Verified on Edge 148 (Chromium): **30/30 checks pass** — generalizes to Chrome/Brave/other Chromium browsers (same engine). Firefox is not yet device-verified.
+
 ## 2. Firefox
 
 1. `npm run build:firefox`.
