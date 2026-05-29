@@ -1,6 +1,27 @@
-# Multi-Browser Support — v1 (common structure)
+# Multi-Browser Support — v1
 
-Status: **foundation in place** (build targets + manifest overrides + compat strategy). No browser-specific runtime forks yet; per-browser builds are verified to *produce* valid output, not yet manually tested in each browser.
+Status: **Chromium family supported by a single build** (Safari out of scope). Build targets + manifest overrides are in place; Firefox is scaffolded (Gecko id) but not yet device-tested.
+
+## Supported browsers
+
+The extension uses only standard Chromium MV3 APIs (`runtime`, `commands`, `storage`, `tabs`, `scripting`, `declarativeNetRequest`) — no Chrome-only API — so **one Chromium build runs on the whole family**:
+
+| Browser | Engine | How |
+|---------|--------|-----|
+| Chrome | Chromium | `dist/extension` / `chromium.zip` |
+| Edge | Chromium | same build (or `dist/edge` for a separate store listing) |
+| Brave, Opera, Vivaldi, Arc | Chromium | load the same `dist/extension` / `chromium.zip` |
+| Firefox | Gecko | `dist/firefox` (adds `gecko` id) — scaffolded, verify on device |
+| Safari | WebKit | **out of scope** (needs macOS + Xcode conversion) |
+
+## Packaging for stores
+
+```
+npm run build      # dist/extension
+npm run package    # dist/chromium.zip  (upload to Chrome Web Store / Edge Add-ons / Opera)
+```
+
+The chromium.zip has `manifest.json` at the archive root and excludes dev-only files (`_INDEX.md`). The same zip is accepted by all Chromium extension stores.
 
 ## Strategy
 

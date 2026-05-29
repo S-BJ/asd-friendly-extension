@@ -144,6 +144,9 @@ function shouldCopySourcePath(sourcePath) {
   const relativePath = toPosixPath(relative(sourceRoot, sourcePath));
   if (!relativePath) return true;
 
+  // Dev-only directory indexes never ship.
+  if (relativePath === "_INDEX.md" || relativePath.endsWith("/_INDEX.md")) return false;
+
   for (const excludedPath of excludedSourcePaths) {
     if (relativePath === excludedPath || relativePath.startsWith(`${excludedPath}/`)) return false;
   }

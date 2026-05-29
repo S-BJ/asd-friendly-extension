@@ -43,6 +43,17 @@ The foundation does not add AI-driven DOM hiding, collapsing, or reordering.
 npm run build
 ```
 
+## Supported browsers
+
+A single Chromium build runs across the Chromium family — Chrome, Edge, Brave, Opera, Vivaldi, Arc:
+
+```powershell
+npm run build      # dist/extension
+npm run package    # dist/chromium.zip (Chrome Web Store / Edge Add-ons / Opera)
+```
+
+Edge can use a separate listing via `npm run build:edge`. Firefox is scaffolded (`npm run build:firefox` → `dist/firefox`) but not yet device-verified. Safari is out of scope (needs macOS + Xcode). See `docs/multi-browser-support-v1.md`.
+
 AI can run directly from the extension when you enter an OpenAI API key in the popup.
 
 The local backend is now optional and is only needed if you want a self-hosted relay:

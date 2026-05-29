@@ -7,6 +7,8 @@
     "build": "node scripts/build-extension.mjs",
     "build:edge": "node scripts/build-extension.mjs --browser=edge",
     "build:firefox": "node scripts/build-extension.mjs --browser=firefox",
+    "package": "node scripts/package-extension.mjs",
+    "package:edge": "node scripts/package-extension.mjs --browser=edge",
     "audit:sites": "node scripts/audit-extension-sites.mjs",
     "audit:sites:ai": "node scripts/audit-extension-sites.mjs --ai",
     "verify:toggles": "node scripts/verify-extension-toggles.mjs",
