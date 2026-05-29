@@ -106,7 +106,8 @@
     aiHelperEnabled: false,
     aiGentleSuggestions: true,
     assistPanelDefaultOpen: false,
-    showActiveStateIndicator: true
+    showActiveStateIndicator: true,
+    showQuickToggle: false
   };
 
   const DEFAULT_SITE_OVERRIDE = {
@@ -405,6 +406,7 @@
   let progressTotalWords = 0;
   let progressWordsStale = true;
   let progressRafPending = false;
+  let quickToggleEl = null;
   let lastReadyState = "";
   let assistUi = null;
   let assistState = { payload: null };
@@ -660,6 +662,7 @@
       syncFocusSpotlight(enabled && effective.focusSpotlight, effective.focusSpotlightScope);
       syncReadingProgress(enabled && effective.readingProgress && currentProfile === PAGE_PROFILES.reader);
       syncActiveIndicator(enabled && effective.showActiveStateIndicator, currentProfile);
+      syncQuickToggle(effective.showQuickToggle);
     }
     syncKnownSiteThemeBridge(themeActive, effective.themePreset);
     syncContrastFix(themeActive);
@@ -1712,6 +1715,77 @@
     return element;
   }
 
+  // Opt-in floating quick-toggle: a small on-page control for the most common
+  // global toggles, so users do not have to open the popup. Writes global sync
+  // settings via the background; state reflects back through storage.onChanged.
+  const QUICK_TOGGLE_ITEMS = [
+    { key: "enabled", label: "On" },
+    { key: "focusSpotlight", label: "Spotlight" },
+    { key: "readerMode", label: "Reader" }
+  ];
+
+  function syncQuickToggle(shouldShow) {
+    if (!shouldShow) {
+      if (quickToggleEl) quickToggleEl.hidden = true;
+      return;
+    }
+
+    onBodyReady(() => {
+      quickToggleEl = quickToggleEl || createQuickToggle();
+      quickToggleEl.hidden = false;
+      updateQuickToggleStates();
+    });
+  }
+
+  function createQuickToggle() {
+    const host = document.createElement("div");
+    host.className = "asd-foundation-quicktoggle";
+
+    const panel = document.createElement("div");
+    panel.className = "qt-panel";
+    panel.hidden = true;
+
+    for (const { key, label } of QUICK_TOGGLE_ITEMS) {
+      const item = document.createElement("button");
+      item.type = "button";
+      item.className = "qt-item";
+      item.dataset.qtKey = key;
+      item.textContent = label;
+      item.addEventListener("click", () => {
+        void sendRuntimeMessage({
+          type: MESSAGE_TYPES.setSettings,
+          payload: { [key]: !syncSettings[key] }
+        });
+      });
+      panel.append(item);
+    }
+
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "qt-button";
+    button.textContent = "ASD";
+    button.setAttribute("aria-expanded", "false");
+    button.setAttribute("aria-label", "ASD UI quick toggles");
+    button.addEventListener("click", () => {
+      const open = panel.hidden;
+      panel.hidden = !open;
+      button.setAttribute("aria-expanded", String(open));
+    });
+
+    host.append(panel, button);
+    document.body.append(host);
+    return host;
+  }
+
+  function updateQuickToggleStates() {
+    if (!quickToggleEl) return;
+    quickToggleEl.querySelectorAll(".qt-item").forEach((item) => {
+      const active = Boolean(syncSettings[item.dataset.qtKey]);
+      item.setAttribute("aria-pressed", String(active));
+      item.classList.toggle("is-on", active);
+    });
+  }
+
   function getSelectionContext() {
     refreshPageClassification();
     const selection = window.getSelection();
@@ -2506,6 +2580,7 @@
       settings.showActiveStateIndicator,
       DEFAULT_SETTINGS.showActiveStateIndicator
     );
+    settings.showQuickToggle = normalizeBoolean(settings.showQuickToggle, DEFAULT_SETTINGS.showQuickToggle);
     settings.themePreset = settings.themePreset === "original" || THEMES[settings.themePreset]
       ? settings.themePreset
       : DEFAULT_SETTINGS.themePreset;

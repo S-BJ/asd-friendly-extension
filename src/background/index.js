@@ -96,11 +96,27 @@ chrome.runtime.onStartup.addListener(() => {
   void ensureStoredSettings();
 });
 
+const COMMAND_SETTING_MAP = Object.freeze({
+  "toggle-extension": "enabled",
+  "toggle-spotlight": "focusSpotlight",
+  "toggle-reader": "readerMode"
+});
+
 chrome.commands.onCommand.addListener((command) => {
   if (command === "run-ai-analysis") {
     void runAiShortcutCommand();
+    return;
   }
+
+  const settingKey = COMMAND_SETTING_MAP[command];
+  if (settingKey) void toggleSyncSetting(settingKey);
 });
+
+async function toggleSyncSetting(key) {
+  const current = await getSyncSettings();
+  if (typeof current[key] !== "boolean") return;
+  await setSyncSettings({ [key]: !current[key] });
+}
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (!message?.type) return false;

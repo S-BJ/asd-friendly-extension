@@ -17,6 +17,17 @@ test("manifest avoids all-url schemes and keeps only required high-level permiss
   assert.equal(manifest.declarative_net_request.rule_resources[0].path, "rules/ad-block.json");
 });
 
+test("base manifest stays Chrome-clean and the Firefox override supplies gecko settings", async () => {
+  const base = JSON.parse(await readFile(new URL("../src/manifest.json", import.meta.url), "utf8"));
+  assert.equal(base.browser_specific_settings, undefined);
+  assert.ok(base.background?.service_worker, "base keeps a service_worker background");
+
+  const firefox = JSON.parse(
+    await readFile(new URL("../build/manifest-overrides/firefox.json", import.meta.url), "utf8")
+  );
+  assert.ok(firefox.browser_specific_settings?.gecko?.id, "Firefox override sets a gecko id");
+});
+
 test("popup exposes all background AI actions", async () => {
   const [html, script] = await Promise.all([
     readFile(new URL("../src/popup/index.html", import.meta.url), "utf8"),

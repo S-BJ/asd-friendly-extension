@@ -6,8 +6,14 @@ import { fileURLToPath } from "node:url";
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const sourceRoot = join(repoRoot, "src");
 const distRoot = join(repoRoot, "dist");
-const extensionDist = join(distRoot, "extension");
+const manifestOverridesRoot = join(repoRoot, "build", "manifest-overrides");
 const distributionReadmeSource = join(repoRoot, "docs", "distribution-readme-ko.md");
+
+// Build target. Chrome (default) keeps the historical `dist/extension` output and
+// no manifest override, so its output is unchanged. Other browsers emit to
+// `dist/<browser>` and merge an optional override from build/manifest-overrides/.
+const targetBrowser = parseTargetBrowser();
+const extensionDist = join(distRoot, targetBrowser === "chrome" ? "extension" : targetBrowser);
 
 const sourceAssets = [
   "manifest.json",
@@ -34,12 +40,53 @@ for (const asset of sourceAssets) {
 await copyOptionalDirectory("icons");
 await copyOptionalDirectory("public");
 
-const manifest = await readManifest(join(extensionDist, "manifest.json"));
+const manifestPath = join(extensionDist, "manifest.json");
+let manifest = await readManifest(manifestPath);
+
+const override = await readManifestOverride(targetBrowser);
+if (override) {
+  manifest = deepMerge(manifest, override);
+  await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
+}
+
 await validateManifestReferences(manifest);
 await writeBuildMetadata(manifest);
 await copyDistributionReadme();
 
-console.log(`Built extension at ${relative(repoRoot, extensionDist)}`);
+console.log(`Built ${targetBrowser} extension at ${relative(repoRoot, extensionDist)}`);
+
+function parseTargetBrowser() {
+  const args = process.argv.slice(2);
+  let value = "chrome";
+  for (let i = 0; i < args.length; i += 1) {
+    const arg = args[i];
+    if (arg.startsWith("--browser=")) value = arg.slice("--browser=".length);
+    else if (arg === "--browser" && args[i + 1]) value = args[i + 1];
+  }
+  return String(value).trim().toLowerCase() || "chrome";
+}
+
+async function readManifestOverride(browser) {
+  if (browser === "chrome") return null;
+  const overridePath = join(manifestOverridesRoot, `${browser}.json`);
+  if (!existsSync(overridePath)) return null;
+  return readManifest(overridePath);
+}
+
+// Recursive merge: plain objects merge key-by-key; arrays and primitives in the
+// override replace the base value.
+function deepMerge(base, override) {
+  if (!isPlainObject(base) || !isPlainObject(override)) return override;
+  const result = { ...base };
+  for (const [key, value] of Object.entries(override)) {
+    result[key] = key in base ? deepMerge(base[key], value) : value;
+  }
+  return result;
+}
+
+function isPlainObject(value) {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
 
 async function copyRequiredFromSource(relativePath) {
   const source = join(sourceRoot, relativePath);

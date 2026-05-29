@@ -19,7 +19,8 @@ export const FEATURE_KEYS = Object.freeze({
   imageSoftening: "imageSofteningEnabled",
   aiHelper: "aiHelperEnabled",
   aiGentleSuggestions: "aiGentleSuggestions",
-  activeStateIndicator: "showActiveStateIndicator"
+  activeStateIndicator: "showActiveStateIndicator",
+  quickToggle: "showQuickToggle"
 });
 
 export const FEATURE_DEFAULT_POLICY = Object.freeze({
@@ -130,6 +131,12 @@ export const FEATURE_DEFAULT_POLICY = Object.freeze({
     globalToggle: true,
     siteOverride: false,
     evidence: "reduces-surprise"
+  },
+  [FEATURE_KEYS.quickToggle]: {
+    defaultEnabled: false,
+    globalToggle: true,
+    siteOverride: false,
+    evidence: "convenience-opt-in"
   }
 });
 

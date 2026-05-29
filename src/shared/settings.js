@@ -52,7 +52,8 @@ export const DEFAULT_SYNC_SETTINGS = Object.freeze({
   aiHelperEnabled: false,
   aiGentleSuggestions: true,
   assistPanelDefaultOpen: false,
-  showActiveStateIndicator: true
+  showActiveStateIndicator: true,
+  showQuickToggle: false
 });
 
 export const DEFAULT_LOCAL_SETTINGS = Object.freeze({
@@ -95,7 +96,8 @@ const BOOLEAN_SYNC_KEYS = Object.freeze([
   "aiHelperEnabled",
   "aiGentleSuggestions",
   "assistPanelDefaultOpen",
-  "showActiveStateIndicator"
+  "showActiveStateIndicator",
+  "showQuickToggle"
 ]);
 
 export const COMFORT_PRESETS = Object.freeze({

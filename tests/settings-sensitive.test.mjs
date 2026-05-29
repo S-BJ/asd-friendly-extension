@@ -268,6 +268,12 @@ test("adhd-focus comfort preset bundles focus and reading supports", () => {
   assert.equal(applied.themePreset, "original");
 });
 
+test("quick-toggle convenience setting defaults off and normalizes", () => {
+  assert.equal(DEFAULT_SYNC_SETTINGS.showQuickToggle, false);
+  assert.equal(normalizeSyncSettings({ showQuickToggle: "true" }).showQuickToggle, true);
+  assert.equal(normalizeSyncSettings({ showQuickToggle: "nope" }).showQuickToggle, false);
+});
+
 test("ADHD site-override flags exist and normalize to booleans", () => {
   const normalized = normalizeLocalSettings({
     siteOverrides: {

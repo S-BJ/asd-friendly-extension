@@ -30,6 +30,24 @@
         "default": "Alt+1"
       },
       "description": "Run AI analysis on the current tab"
+    },
+    "toggle-extension": {
+      "suggested_key": {
+        "default": "Alt+2"
+      },
+      "description": "Turn the extension on or off"
+    },
+    "toggle-spotlight": {
+      "suggested_key": {
+        "default": "Alt+3"
+      },
+      "description": "Toggle the focus spotlight"
+    },
+    "toggle-reader": {
+      "suggested_key": {
+        "default": "Alt+4"
+      },
+      "description": "Toggle reader mode"
     }
   },
   "content_scripts": [

@@ -27,6 +27,8 @@ Runtime code lives under:
 - Community-site assist toggle for Reddit, DCInside, Ruliweb, and similar dense pages
 - Reading ruler toggle
 - ADHD focus & reading supports: focus spotlight (line/paragraph place-keeping), reading progress with estimated time left, adjustable letter spacing and reading width, and long-text chunking (all opt-in, sensitive-page aware)
+- Keyboard shortcuts (toggle extension / focus spotlight / reader mode; rebindable at `chrome://extensions/shortcuts`)
+- Optional on-page floating quick-toggle for common controls
 - Active state indicator
 - Site-specific overrides
 - First-run comfort setup
@@ -109,3 +111,4 @@ AI audit mode sends only summarized runtime metrics. It does not send raw HTML, 
 - `docs/llm-implementation-blueprint-v1.md`
 - `docs/implementation-references-v1.md`
 - `docs/adhd-support-design-v1.md`
+- `docs/multi-browser-support-v1.md`
