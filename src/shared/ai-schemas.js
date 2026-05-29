@@ -27,6 +27,10 @@ export const PAGE_SUMMARY_SCHEMA = Object.freeze({
   additionalProperties: false,
   properties: {
     page_purpose: { type: "string" },
+    key_points: {
+      type: "array",
+      items: { type: "string" }
+    },
     important_areas: {
       type: "array",
       items: { type: "string" }
@@ -52,6 +56,7 @@ export const PAGE_SUMMARY_SCHEMA = Object.freeze({
   },
   required: [
     "page_purpose",
+    "key_points",
     "important_areas",
     "visible_main_actions",
     "likely_next_step",

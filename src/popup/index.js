@@ -37,6 +37,7 @@ const I18N = {
     presetSoftDark: "Soft dark",
     presetTextFocused: "Text focused",
     presetMotionMinimal: "Motion minimal",
+    presetAdhdFocus: "ADHD focus",
     reduceContrast: "Reduce screen contrast",
     readableFont: "Use readable font",
     hideLikelyAds: "Hide likely ads",
@@ -57,6 +58,22 @@ const I18N = {
     readerMode: "Reader mode",
     communityAssist: "Community assist",
     readingRuler: "Reading ruler",
+    adhdHeading: "Focus & reading",
+    adhdCopy: "Supports for attention and place-keeping while reading.",
+    focusSpotlight: "Focus spotlight",
+    focusSpotlightScope: "Spotlight area",
+    spotlightParagraph: "Paragraph",
+    spotlightLine: "Line",
+    readingProgress: "Reading progress",
+    readerChunking: "Chunk long text",
+    letterSpacing: "Letter spacing",
+    readingWidth: "Reading width",
+    widthOff: "Off",
+    widthNarrow: "Narrow",
+    widthMedium: "Medium",
+    widthWide: "Wide",
+    noFocusSpotlight: "No spotlight",
+    noReadingProgress: "No progress bar",
     stateIndicator: "State indicator",
     gentleAiWording: "Gentle AI wording",
     imageSoftening: "Image softening",
@@ -124,6 +141,7 @@ const I18N = {
     presetSoftDark: "부드러운 다크",
     presetTextFocused: "텍스트 집중",
     presetMotionMinimal: "움직임 최소",
+    presetAdhdFocus: "ADHD 집중",
     reduceContrast: "화면 대비 줄이기",
     readableFont: "읽기 쉬운 글꼴 사용",
     hideLikelyAds: "광고로 보이는 영역 숨기기",
@@ -144,6 +162,22 @@ const I18N = {
     readerMode: "읽기 모드",
     communityAssist: "커뮤니티 보조",
     readingRuler: "읽기 가이드",
+    adhdHeading: "집중 & 읽기",
+    adhdCopy: "읽는 동안 주의 유지와 위치 추적을 돕는 기능이에요.",
+    focusSpotlight: "포커스 스포트라이트",
+    focusSpotlightScope: "스포트라이트 범위",
+    spotlightParagraph: "문단",
+    spotlightLine: "줄",
+    readingProgress: "읽기 진행바",
+    readerChunking: "긴 글 끊어 읽기",
+    letterSpacing: "자간",
+    readingWidth: "본문 폭",
+    widthOff: "끄기",
+    widthNarrow: "좁게",
+    widthMedium: "보통",
+    widthWide: "넓게",
+    noFocusSpotlight: "스포트라이트 끄기",
+    noReadingProgress: "진행바 끄기",
     stateIndicator: "상태 표시",
     gentleAiWording: "AI 부드러운 표현",
     imageSoftening: "이미지 완화",
@@ -499,13 +533,19 @@ async function runAiAction(kind) {
   button.disabled = true;
   setAiStatus(t(runningKey));
 
-  const response = await sendRuntimeMessage({
-    type: messageType,
-    tabId: tab.id
-  });
-
-  button.disabled = false;
-  updateAiButtonState();
+  let response;
+  try {
+    response = await sendRuntimeMessage({
+      type: messageType,
+      tabId: tab.id
+    });
+  } catch (error) {
+    setAiStatus(error?.message || t(failedKey), true);
+    return;
+  } finally {
+    button.disabled = false;
+    updateAiButtonState();
+  }
 
   if (response?.ok) {
     setAiStatus(t(doneKey));
@@ -565,6 +605,11 @@ function updateRangeOutput(control) {
 
   if (control.id === "lineHeight") {
     output.textContent = Number(control.value).toFixed(1);
+    return;
+  }
+
+  if (control.id === "letterSpacing") {
+    output.textContent = `${Number(control.value).toFixed(2)}em`;
     return;
   }
 

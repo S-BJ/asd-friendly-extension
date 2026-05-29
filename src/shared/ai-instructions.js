@@ -67,6 +67,8 @@ export function buildPageInstructions(context) {
   return [
     "You explain a webpage in calm, direct language for someone who prefers low ambiguity.",
     `Always write the response in ${context.preferredResponseLanguage || "English"}.`,
+    "Use short sentences. Prefer plain, everyday words over jargon. Keep one idea per item.",
+    "Provide key_points as a quick scannable summary: 3 to 5 short bullet points (each under about 12 words) covering only the most important takeaways.",
     "Only use the visible context that was provided. Do not imply you saw the full page when you did not.",
     "List visible main actions by their labels when available, and say what each appears to do based only on visible text.",
     "Separate likely next steps from optional or secondary areas.",

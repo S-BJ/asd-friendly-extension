@@ -432,3 +432,81 @@ html[data-asd-foundation][data-asd-image-softening][data-asd-reduce-contrast] [d
   background: rgba(63, 111, 143, 0.08);
   pointer-events: none;
 }
+
+/* Letter spacing (A3) */
+:root[data-asd-foundation][data-asd-letter-spacing]:not([data-asd-sensitive-kind]) :is(
+  p, li, dd, dt, blockquote, h1, h2, h3, h4, h5, h6
+) {
+  letter-spacing: var(--asd-letter-spacing, 0) !important;
+}
+
+/* Reading width (A3): cap the measure of detected article content */
+:root[data-asd-foundation][data-asd-reading-width]:not([data-asd-sensitive-kind]) [data-asd-read-shape] {
+  box-sizing: border-box !important;
+  max-width: min(var(--asd-reading-width, 70ch), calc(100vw - 32px)) !important;
+  margin-inline: auto !important;
+}
+
+/* Chunking (B1): more breathing room between blocks in article content */
+:root[data-asd-foundation][data-asd-chunking]:not([data-asd-sensitive-kind]) [data-asd-read-shape] :is(p, li, blockquote) {
+  margin-block: 1.15em !important;
+}
+
+:root[data-asd-foundation][data-asd-chunking]:not([data-asd-sensitive-kind]) [data-asd-read-shape] :is(h2, h3) {
+  margin-block: 1.4em 0.55em !important;
+  padding-top: 0.5em !important;
+  border-top: 1px solid color-mix(in srgb, var(--asd-border, rgba(63, 111, 143, 0.24)) 70%, transparent) !important;
+}
+
+/* Focus spotlight (A1): transparent window, box-shadow dims the rest */
+.asd-foundation-spotlight {
+  position: fixed;
+  z-index: 2147483645;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 48px;
+  pointer-events: none;
+  border-radius: 6px;
+  box-shadow: 0 0 0 100vmax var(--asd-spotlight-shade, rgba(15, 17, 21, 0.42));
+  transition: top 90ms linear, height 90ms linear;
+}
+
+/* Reading progress (A2): thin top bar with an estimated-time-left label */
+.asd-foundation-progress {
+  position: fixed;
+  z-index: 2147483646;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 5px;
+  pointer-events: none;
+  background: color-mix(in srgb, var(--asd-border, rgba(63, 111, 143, 0.24)) 60%, transparent);
+}
+
+.asd-foundation-progress .fill {
+  height: 100%;
+  width: 0%;
+  background: var(--asd-accent, #3f6f8f);
+  transition: width 120ms linear;
+}
+
+.asd-foundation-progress .label {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  padding: 3px 8px;
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--asd-surface, #fffdf8) 94%, transparent);
+  color: var(--asd-fg, #1f2428);
+  border: 1px solid rgba(63, 111, 143, 0.36);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  font: 12px/1.3 var(--asd-readable-font);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .asd-foundation-spotlight,
+  .asd-foundation-progress .fill {
+    transition: none;
+  }
+}

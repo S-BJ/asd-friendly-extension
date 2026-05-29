@@ -26,6 +26,7 @@ Runtime code lives under:
 - Reader mode toggle
 - Community-site assist toggle for Reddit, DCInside, Ruliweb, and similar dense pages
 - Reading ruler toggle
+- ADHD focus & reading supports: focus spotlight (line/paragraph place-keeping), reading progress with estimated time left, adjustable letter spacing and reading width, and long-text chunking (all opt-in, sensitive-page aware)
 - Active state indicator
 - Site-specific overrides
 - First-run comfort setup
@@ -107,3 +108,4 @@ AI audit mode sends only summarized runtime metrics. It does not send raw HTML, 
 - `docs/foundation-design-v1.md`
 - `docs/llm-implementation-blueprint-v1.md`
 - `docs/implementation-references-v1.md`
+- `docs/adhd-support-design-v1.md`

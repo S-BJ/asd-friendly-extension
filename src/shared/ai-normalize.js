@@ -135,6 +135,7 @@ export function shapeSelectionPayload(parsed) {
 export function shapePageSummaryPayload(parsed) {
   return {
     pagePurpose: normalizeText(parsed.page_purpose, 320),
+    keyPoints: normalizeStringArray(parsed.key_points, 5, 140),
     importantAreas: normalizeStringArray(parsed.important_areas, 5, 160),
     visibleMainActions: normalizeStringArray(parsed.visible_main_actions, 6, 160),
     likelyNextStep: normalizeText(parsed.likely_next_step, 220),

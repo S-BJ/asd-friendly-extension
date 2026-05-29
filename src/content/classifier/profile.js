@@ -8,10 +8,6 @@ export function createPageProfileResult(profile, confidence = 0, reason = "") {
   };
 }
 
-export function createGenericProfile(reason = "No stronger page profile matched.") {
-  return createPageProfileResult(PAGE_PROFILES.generic, 0.25, reason);
-}
-
 function clampConfidence(value) {
   const parsed = Number.parseFloat(value);
   if (!Number.isFinite(parsed)) return 0;

@@ -708,7 +708,10 @@ function formatAiError(error, locale, requestType) {
 
 function getMessageOrigin(message, sender) {
   const payload = safeObject(message.payload);
-  const source = message.origin || payload.origin || sender?.tab?.url || "";
+  // When the message comes from a tab (content script) trust the real tab URL
+  // so a page cannot spoof a different origin. Caller-supplied origin is only
+  // used for extension pages (the popup), which have no sender.tab.url.
+  const source = sender?.tab?.url || message.origin || payload.origin || "";
   const origin = originFromUrl(source);
   return /^https?:$/i.test(new URL(origin || "http://x").protocol) && origin ? origin : "";
 }

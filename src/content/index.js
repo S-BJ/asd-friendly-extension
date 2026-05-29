@@ -97,6 +97,12 @@
     imageSofteningEnabled: false,
     imageSofteningStrength: "medium",
     readingRuler: false,
+    focusSpotlight: false,
+    focusSpotlightScope: "paragraph",
+    readingProgress: false,
+    letterSpacing: 0,
+    readingWidth: 0,
+    readerChunking: false,
     aiHelperEnabled: false,
     aiGentleSuggestions: true,
     assistPanelDefaultOpen: false,
@@ -113,7 +119,9 @@
     disableImageSoftening: false,
     disableAiSuggestions: false,
     disableCommunityAssist: false,
-    disableReaderMode: false
+    disableReaderMode: false,
+    disableFocusSpotlight: false,
+    disableReadingProgress: false
   };
 
   const THEMES = {
@@ -168,6 +176,7 @@
       calmerRewrite: "Calmer rewrite",
       confusingParts: "Confusing parts",
       pagePurpose: "Page purpose",
+      keyPoints: "Key points",
       importantAreas: "Important areas",
       visibleMainActions: "Visible main actions",
       likelyNextStep: "Likely next step",
@@ -200,6 +209,7 @@
       calmerRewrite: "더 차분한 다시쓰기",
       confusingParts: "헷갈릴 수 있는 부분",
       pagePurpose: "이 페이지의 목적",
+      keyPoints: "핵심 요점",
       importantAreas: "중요한 영역",
       visibleMainActions: "보이는 주요 동작",
       likelyNextStep: "가능성이 높은 다음 단계",
@@ -384,6 +394,17 @@
   let backgroundImageScanPending = false;
   let rulerRafPending = false;
   let rulerPointerY = 0;
+  let spotlightEl = null;
+  let spotlightEnabled = false;
+  let spotlightScope = "paragraph";
+  let spotlightX = 0;
+  let spotlightY = 0;
+  let spotlightRafPending = false;
+  let progressEl = null;
+  let progressEnabled = false;
+  let progressTotalWords = 0;
+  let progressWordsStale = true;
+  let progressRafPending = false;
   let lastReadyState = "";
   let assistUi = null;
   let assistState = { payload: null };
@@ -607,6 +628,14 @@
     root.style.setProperty("--asd-line-height", String(clampNumber(effective.lineHeight, 1.4, 2.1, 1.7)));
     root.style.setProperty("--asd-image-softening-blur", resolveImageSofteningBlur(effective.imageSofteningStrength));
 
+    const letterSpacing = clampNumber(effective.letterSpacing, 0, 0.12, 0);
+    const readingWidth = clampInteger(effective.readingWidth, 0, 100, 0);
+    root.style.setProperty("--asd-letter-spacing", `${letterSpacing}em`);
+    root.style.setProperty("--asd-reading-width", readingWidth > 0 ? `${readingWidth}ch` : "70ch");
+    root.toggleAttribute("data-asd-letter-spacing", enabled && letterSpacing > 0);
+    root.toggleAttribute("data-asd-reading-width", enabled && readingWidth > 0);
+    root.toggleAttribute("data-asd-chunking", enabled && effective.readerChunking);
+
     const theme = THEMES[effective.themePreset] || THEMES["soft-light"];
     root.style.setProperty("--asd-base-bg", theme.bg);
     root.style.setProperty("--asd-base-fg", theme.fg);
@@ -623,10 +652,13 @@
 
     if (enabled && effective.muteAutoplay) pauseAutoplayMedia();
     syncReaderTarget(enabled && effective.readerMode && currentProfile === PAGE_PROFILES.reader);
+    syncReadShape(enabled && !sensitiveMode && (effective.readerChunking || readingWidth > 0));
     syncAdRemoval(enabled && effective.adRemovalEnabled);
     syncBackgroundImageSoftening(enabled && effective.imageSofteningEnabled);
     if (IS_TOP_FRAME) {
       syncReadingRuler(enabled && effective.readingRuler);
+      syncFocusSpotlight(enabled && effective.focusSpotlight, effective.focusSpotlightScope);
+      syncReadingProgress(enabled && effective.readingProgress && currentProfile === PAGE_PROFILES.reader);
       syncActiveIndicator(enabled && effective.showActiveStateIndicator, currentProfile);
     }
     syncKnownSiteThemeBridge(themeActive, effective.themePreset);
@@ -636,6 +668,7 @@
 
   function refreshPageClassification() {
     currentReaderTarget = null;
+    progressWordsStale = true;
     currentSensitivePageKind = detectSensitivePageKind({
       url: location.href,
       title: document.title || "",
@@ -683,7 +716,9 @@
       readerMode: override.disableReaderMode ? false : settings.readerMode,
       communityAssistEnabled: override.disableCommunityAssist ? false : settings.communityAssistEnabled,
       aiGentleSuggestions: override.disableAiSuggestions ? false : settings.aiGentleSuggestions,
-      imageSofteningEnabled: override.disableImageSoftening ? false : settings.imageSofteningEnabled
+      imageSofteningEnabled: override.disableImageSoftening ? false : settings.imageSofteningEnabled,
+      focusSpotlight: override.disableFocusSpotlight ? false : settings.focusSpotlight,
+      readingProgress: override.disableReadingProgress ? false : settings.readingProgress
     });
 
     if (currentSensitivePageKind === SENSITIVE_PAGE_KINDS.none) {
@@ -701,7 +736,12 @@
       readerMode: false,
       communityAssistEnabled: false,
       adRemovalEnabled: false,
-      imageSofteningEnabled: false
+      imageSofteningEnabled: false,
+      letterSpacing: DEFAULT_SETTINGS.letterSpacing,
+      readingWidth: DEFAULT_SETTINGS.readingWidth,
+      readerChunking: false,
+      focusSpotlight: false,
+      readingProgress: false
     });
   }
 
@@ -1225,7 +1265,9 @@
 
   function markBackgroundImageCandidate(element) {
     const style = getComputedStyle(element);
-    const backgroundImage = getBackgroundImageForSoftening(element);
+    const backgroundImage = /\burl\(/i.test(style.backgroundImage || "")
+      ? style.backgroundImage
+      : element.style?.backgroundImage || "";
     if (!/\burl\(/i.test(backgroundImage)) return;
 
     element.setAttribute(BACKGROUND_IMAGE_SOFTEN_ATTR, "1");
@@ -1396,7 +1438,6 @@
 
   function isLikelyAdElement(element) {
     if (!(element instanceof Element)) return false;
-    if (isProtectedContent(element)) return false;
 
     const marker = [
       element.id,
@@ -1411,7 +1452,10 @@
       .filter(Boolean)
       .join(" ");
 
-    return AD_MARKER_PATTERN.test(marker);
+    // Cheap marker test first; only walk the ancestor tree (isProtectedContent)
+    // for the rare elements whose attributes look ad-like.
+    if (!AD_MARKER_PATTERN.test(marker)) return false;
+    return !isProtectedContent(element);
   }
 
   function isProtectedContent(element) {
@@ -1465,6 +1509,184 @@
       if (!ruler) return;
       ruler.style.transform = `translateY(${Math.max(0, rulerPointerY - 18)}px)`;
     });
+  }
+
+  // Marks the detected reading container so chunking / reading-width CSS can
+  // scope itself to article content instead of the whole page.
+  function syncReadShape(shouldEnable) {
+    document.querySelectorAll("[data-asd-read-shape]").forEach((element) => {
+      if (element !== currentReaderTarget) element.removeAttribute("data-asd-read-shape");
+    });
+
+    if (!shouldEnable || !currentReaderTarget?.isConnected) {
+      if (currentReaderTarget) currentReaderTarget.removeAttribute("data-asd-read-shape");
+      return;
+    }
+
+    currentReaderTarget.setAttribute("data-asd-read-shape", "1");
+  }
+
+  // Focus spotlight (A1): a transparent window that follows the reading
+  // position while a large box-shadow dims the rest of the page. Purely visual
+  // overlay — it never mutates page DOM or layout.
+  function syncFocusSpotlight(shouldEnable, scope) {
+    spotlightScope = scope === "line" ? "line" : "paragraph";
+
+    // apply() runs on every settings change; only do work when the on/off state
+    // actually flips. A scope change while enabled is picked up on the next move.
+    if (spotlightEnabled === shouldEnable) return;
+    spotlightEnabled = shouldEnable;
+
+    if (!shouldEnable) {
+      document.removeEventListener("mousemove", moveSpotlight);
+      window.removeEventListener("scroll", scheduleSpotlight);
+      if (spotlightEl) spotlightEl.hidden = true;
+      return;
+    }
+
+    onBodyReady(() => {
+      spotlightEl = spotlightEl || createSpotlight();
+      spotlightEl.hidden = false;
+      // Start centered so the first paint (before any pointer move) is sensible
+      // rather than pinned to the top-left corner.
+      if (!spotlightX && !spotlightY) {
+        spotlightX = Math.round((window.innerWidth || 0) / 2);
+        spotlightY = Math.round((window.innerHeight || 0) / 2);
+      }
+      document.addEventListener("mousemove", moveSpotlight, { passive: true });
+      window.addEventListener("scroll", scheduleSpotlight, { passive: true });
+      positionSpotlight();
+    });
+  }
+
+  function createSpotlight() {
+    const element = document.createElement("div");
+    element.className = "asd-foundation-spotlight";
+    element.hidden = true;
+    document.body.append(element);
+    return element;
+  }
+
+  function moveSpotlight(event) {
+    spotlightX = event.clientX;
+    spotlightY = event.clientY;
+    scheduleSpotlight();
+  }
+
+  function scheduleSpotlight() {
+    if (spotlightRafPending) return;
+    spotlightRafPending = true;
+    requestAnimationFrame(() => {
+      spotlightRafPending = false;
+      positionSpotlight();
+    });
+  }
+
+  function positionSpotlight() {
+    if (!spotlightEl || spotlightEl.hidden) return;
+    const viewportH = window.innerHeight || document.documentElement.clientHeight || 0;
+    let top;
+    let height;
+    const block = spotlightScope === "paragraph" ? findSpotlightBlock(spotlightX, spotlightY) : null;
+    if (block) {
+      const rect = block.getBoundingClientRect();
+      const pad = 8;
+      top = rect.top - pad;
+      height = rect.height + pad * 2;
+    } else {
+      height = 48;
+      top = spotlightY - height / 2;
+    }
+    height = Math.min(height, viewportH);
+    top = Math.max(0, Math.min(top, viewportH - height));
+    spotlightEl.style.top = `${Math.round(top)}px`;
+    spotlightEl.style.height = `${Math.round(height)}px`;
+  }
+
+  function findSpotlightBlock(x, y) {
+    if (!Number.isFinite(x) || !Number.isFinite(y)) return null;
+    const target = document.elementFromPoint(x, y);
+    if (!(target instanceof Element) || isExtensionUiElement(target)) return null;
+    const block = target.closest("p, li, dd, dt, blockquote, h1, h2, h3, h4, h5, h6, td, figcaption, pre");
+    if (!block || isExtensionUiElement(block) || !isVisibleElement(block)) return null;
+    return block;
+  }
+
+  // Reading progress (A2): a thin top bar plus an estimated-time-left label.
+  // Counters time blindness on long article pages.
+  function syncReadingProgress(shouldEnable) {
+    // Only flip listeners/DOM when the on/off state actually changes (apply()
+    // runs on every settings change). Word count is recomputed lazily.
+    if (progressEnabled === shouldEnable) return;
+    progressEnabled = shouldEnable;
+
+    if (!shouldEnable) {
+      window.removeEventListener("scroll", scheduleProgress);
+      window.removeEventListener("resize", scheduleProgress);
+      if (progressEl) progressEl.hidden = true;
+      return;
+    }
+
+    onBodyReady(() => {
+      progressEl = progressEl || createProgress();
+      progressEl.hidden = false;
+      progressWordsStale = true;
+      window.addEventListener("scroll", scheduleProgress, { passive: true });
+      window.addEventListener("resize", scheduleProgress, { passive: true });
+      updateProgress();
+    });
+  }
+
+  function createProgress() {
+    const element = document.createElement("div");
+    element.className = "asd-foundation-progress";
+    element.setAttribute("role", "progressbar");
+    element.setAttribute("aria-label", "Reading progress");
+    element.setAttribute("aria-valuemin", "0");
+    element.setAttribute("aria-valuemax", "100");
+    const fill = document.createElement("div");
+    fill.className = "fill";
+    const label = document.createElement("span");
+    label.className = "label";
+    element.append(fill, label);
+    document.body.append(element);
+    return element;
+  }
+
+  function scheduleProgress() {
+    if (progressRafPending) return;
+    progressRafPending = true;
+    requestAnimationFrame(() => {
+      progressRafPending = false;
+      updateProgress();
+    });
+  }
+
+  function updateProgress() {
+    if (!progressEl || progressEl.hidden) return;
+    if (progressWordsStale) {
+      progressTotalWords = countReadableWords();
+      progressWordsStale = false;
+    }
+    const doc = document.documentElement;
+    const viewportH = window.innerHeight || doc.clientHeight || 0;
+    const max = Math.max(1, (doc.scrollHeight || 0) - viewportH);
+    const ratio = Math.min(1, Math.max(0, (window.scrollY || doc.scrollTop || 0) / max));
+    const fill = progressEl.querySelector(".fill");
+    const label = progressEl.querySelector(".label");
+    if (fill) fill.style.width = `${Math.round(ratio * 100)}%`;
+    if (label) {
+      const remainingWords = Math.max(0, Math.round(progressTotalWords * (1 - ratio)));
+      const minutes = Math.ceil(remainingWords / 220);
+      label.textContent = minutes > 0 ? `~${minutes} min left` : "done";
+    }
+    progressEl.setAttribute("aria-valuenow", String(Math.round(ratio * 100)));
+  }
+
+  function countReadableWords() {
+    const source = currentReaderTarget?.isConnected ? currentReaderTarget : document.body;
+    const text = source?.innerText || "";
+    return text.trim().split(/\s+/).filter(Boolean).length;
   }
 
   function syncActiveIndicator(shouldShow, profile) {
@@ -2094,6 +2316,7 @@
 
     let appended = false;
     appended = appendOptionalTextSection(container, text.pagePurpose, response.pagePurpose) || appended;
+    appended = appendOptionalListSection(container, text.keyPoints, response.keyPoints) || appended;
     appended = appendOptionalListSection(container, text.importantAreas, response.importantAreas) || appended;
     appended = appendOptionalListSection(container, text.visibleMainActions, response.visibleMainActions) || appended;
     appended = appendOptionalTextSection(container, text.likelyNextStep, response.likelyNextStep) || appended;
@@ -2273,6 +2496,10 @@
     settings.muteAutoplay = normalizeBoolean(settings.muteAutoplay, DEFAULT_SETTINGS.muteAutoplay);
     settings.imageSofteningEnabled = normalizeBoolean(settings.imageSofteningEnabled, DEFAULT_SETTINGS.imageSofteningEnabled);
     settings.readingRuler = normalizeBoolean(settings.readingRuler, DEFAULT_SETTINGS.readingRuler);
+    settings.focusSpotlight = normalizeBoolean(settings.focusSpotlight, DEFAULT_SETTINGS.focusSpotlight);
+    settings.readingProgress = normalizeBoolean(settings.readingProgress, DEFAULT_SETTINGS.readingProgress);
+    settings.readerChunking = normalizeBoolean(settings.readerChunking, DEFAULT_SETTINGS.readerChunking);
+    settings.focusSpotlightScope = settings.focusSpotlightScope === "line" ? "line" : "paragraph";
     settings.aiHelperEnabled = normalizeBoolean(settings.aiHelperEnabled, DEFAULT_SETTINGS.aiHelperEnabled);
     settings.aiGentleSuggestions = normalizeBoolean(settings.aiGentleSuggestions, DEFAULT_SETTINGS.aiGentleSuggestions);
     settings.showActiveStateIndicator = normalizeBoolean(
@@ -2292,7 +2519,15 @@
     settings.imageSofteningStrength = normalizeImageSofteningStrength(settings.imageSofteningStrength);
     settings.textScale = clampInteger(settings.textScale, 80, 140, DEFAULT_SETTINGS.textScale);
     settings.lineHeight = clampNumber(settings.lineHeight, 1.4, 2.1, DEFAULT_SETTINGS.lineHeight);
+    settings.letterSpacing = clampNumber(settings.letterSpacing, 0, 0.12, DEFAULT_SETTINGS.letterSpacing);
+    settings.readingWidth = normalizeReadingWidth(settings.readingWidth);
     return settings;
+  }
+
+  function normalizeReadingWidth(value) {
+    const parsed = Number.parseInt(String(value), 10);
+    if (!Number.isFinite(parsed) || parsed <= 0) return 0;
+    return Math.min(100, Math.max(45, parsed));
   }
 
   function normalizeSiteOverrides(value = {}) {

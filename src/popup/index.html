@@ -18,6 +18,7 @@
           <button type="button" data-first-run-preset="soft-dark-calm" data-i18n="presetSoftDark">Soft dark</button>
           <button type="button" data-first-run-preset="text-focused" data-i18n="presetTextFocused">Text focused</button>
           <button type="button" data-first-run-preset="motion-minimal" data-i18n="presetMotionMinimal">Motion minimal</button>
+          <button type="button" data-first-run-preset="adhd-focus" data-i18n="presetAdhdFocus">ADHD focus</button>
         </div>
         <label class="toggle">
           <input id="first-run-reduce-contrast" type="checkbox">
@@ -63,6 +64,7 @@
             <option value="soft-dark-calm" data-i18n="presetSoftDark">Soft dark</option>
             <option value="text-focused" data-i18n="presetTextFocused">Text focused</option>
             <option value="motion-minimal" data-i18n="presetMotionMinimal">Motion minimal</option>
+            <option value="adhd-focus" data-i18n="presetAdhdFocus">ADHD focus</option>
           </select>
         </label>
 
@@ -129,6 +131,46 @@
           <output id="lineHeight-output"></output>
           <input id="lineHeight" type="range" min="1.4" max="2.1" step="0.1" data-setting="lineHeight">
         </div>
+        <div class="range-row">
+          <label for="letterSpacing" data-i18n="letterSpacing">Letter spacing</label>
+          <output id="letterSpacing-output"></output>
+          <input id="letterSpacing" type="range" min="0" max="0.12" step="0.01" data-setting="letterSpacing">
+        </div>
+      </section>
+
+      <section class="section">
+        <h2 data-i18n="adhdHeading">Focus &amp; reading</h2>
+        <p class="section-copy" data-i18n="adhdCopy">Supports for attention and place-keeping while reading.</p>
+        <div class="grid">
+          <label class="toggle">
+            <input type="checkbox" data-setting="focusSpotlight">
+            <span data-i18n="focusSpotlight">Focus spotlight</span>
+          </label>
+          <label class="toggle">
+            <input type="checkbox" data-setting="readingProgress">
+            <span data-i18n="readingProgress">Reading progress</span>
+          </label>
+          <label class="toggle">
+            <input type="checkbox" data-setting="readerChunking">
+            <span data-i18n="readerChunking">Chunk long text</span>
+          </label>
+        </div>
+        <label class="field">
+          <span data-i18n="focusSpotlightScope">Spotlight area</span>
+          <select id="focusSpotlightScope" data-setting="focusSpotlightScope">
+            <option value="paragraph" data-i18n="spotlightParagraph">Paragraph</option>
+            <option value="line" data-i18n="spotlightLine">Line</option>
+          </select>
+        </label>
+        <label class="field">
+          <span data-i18n="readingWidth">Reading width</span>
+          <select id="readingWidth" data-setting="readingWidth">
+            <option value="0" data-i18n="widthOff">Off</option>
+            <option value="55" data-i18n="widthNarrow">Narrow</option>
+            <option value="65" data-i18n="widthMedium">Medium</option>
+            <option value="80" data-i18n="widthWide">Wide</option>
+          </select>
+        </label>
       </section>
 
       <section class="section">
@@ -213,6 +255,14 @@
           <label class="toggle">
             <input type="checkbox" data-site-override="disableReaderMode">
             <span data-i18n="noReaderMode">No reader mode</span>
+          </label>
+          <label class="toggle">
+            <input type="checkbox" data-site-override="disableFocusSpotlight">
+            <span data-i18n="noFocusSpotlight">No spotlight</span>
+          </label>
+          <label class="toggle">
+            <input type="checkbox" data-site-override="disableReadingProgress">
+            <span data-i18n="noReadingProgress">No progress bar</span>
           </label>
         </div>
       </section>

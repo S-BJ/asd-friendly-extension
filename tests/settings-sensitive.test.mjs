@@ -224,3 +224,57 @@ test("sensitive page detection ignores public-service link lists", () => {
     SENSITIVE_PAGE_KINDS.none
   );
 });
+
+test("ADHD reading features default off and conservative", () => {
+  assert.equal(DEFAULT_SYNC_SETTINGS.focusSpotlight, false);
+  assert.equal(DEFAULT_SYNC_SETTINGS.readingProgress, false);
+  assert.equal(DEFAULT_SYNC_SETTINGS.readerChunking, false);
+  assert.equal(DEFAULT_SYNC_SETTINGS.focusSpotlightScope, "paragraph");
+  assert.equal(DEFAULT_SYNC_SETTINGS.letterSpacing, 0);
+  assert.equal(DEFAULT_SYNC_SETTINGS.readingWidth, 0);
+});
+
+test("ADHD numeric and enum settings normalize within range", () => {
+  const clamped = normalizeSyncSettings({
+    letterSpacing: 5,
+    readingWidth: 999,
+    focusSpotlightScope: "nonsense",
+    focusSpotlight: "true",
+    readerChunking: "1"
+  });
+  assert.equal(clamped.letterSpacing, 0.12);
+  assert.equal(clamped.readingWidth, 100);
+  assert.equal(clamped.focusSpotlightScope, "paragraph");
+  assert.equal(clamped.focusSpotlight, true);
+  assert.equal(clamped.readerChunking, true);
+
+  const lowEnd = normalizeSyncSettings({ letterSpacing: -1, readingWidth: 30, focusSpotlightScope: "line" });
+  assert.equal(lowEnd.letterSpacing, 0);
+  assert.equal(lowEnd.readingWidth, 45);
+  assert.equal(lowEnd.focusSpotlightScope, "line");
+
+  assert.equal(normalizeSyncSettings({ readingWidth: 0 }).readingWidth, 0);
+  assert.equal(normalizeSyncSettings({ readingWidth: 65 }).readingWidth, 65);
+});
+
+test("adhd-focus comfort preset bundles focus and reading supports", () => {
+  const applied = applyComfortPreset(DEFAULT_SYNC_SETTINGS, "adhd-focus");
+  assert.equal(applied.activeComfortPreset, "adhd-focus");
+  assert.equal(applied.focusSpotlight, true);
+  assert.equal(applied.readingProgress, true);
+  assert.equal(applied.readerChunking, true);
+  assert.equal(applied.reduceMotion, true);
+  assert.equal(applied.adRemovalEnabled, true);
+  assert.equal(applied.themePreset, "original");
+});
+
+test("ADHD site-override flags exist and normalize to booleans", () => {
+  const normalized = normalizeLocalSettings({
+    siteOverrides: {
+      "https://example.com": { disableFocusSpotlight: "true", disableReadingProgress: 1 }
+    }
+  });
+  const override = normalized.siteOverrides["https://example.com"];
+  assert.equal(override.disableFocusSpotlight, true);
+  assert.equal(override.disableReadingProgress, true);
+});

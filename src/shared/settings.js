@@ -19,6 +19,11 @@ export const PAGE_DENSITIES = Object.freeze({
   spacious: "spacious"
 });
 
+export const SPOTLIGHT_SCOPES = Object.freeze({
+  line: "line",
+  paragraph: "paragraph"
+});
+
 export const DEFAULT_SYNC_SETTINGS = Object.freeze({
   enabled: true,
   uiLanguage: "auto",
@@ -38,6 +43,12 @@ export const DEFAULT_SYNC_SETTINGS = Object.freeze({
   imageSofteningEnabled: false,
   imageSofteningStrength: IMAGE_SOFTENING_STRENGTHS.medium,
   readingRuler: false,
+  focusSpotlight: false,
+  focusSpotlightScope: SPOTLIGHT_SCOPES.paragraph,
+  readingProgress: false,
+  letterSpacing: 0,
+  readingWidth: 0,
+  readerChunking: false,
   aiHelperEnabled: false,
   aiGentleSuggestions: true,
   assistPanelDefaultOpen: false,
@@ -61,7 +72,9 @@ export const DEFAULT_SITE_OVERRIDE = Object.freeze({
   disableImageSoftening: false,
   disableAiSuggestions: false,
   disableCommunityAssist: false,
-  disableReaderMode: false
+  disableReaderMode: false,
+  disableFocusSpotlight: false,
+  disableReadingProgress: false
 });
 
 const BOOLEAN_SYNC_KEYS = Object.freeze([
@@ -76,6 +89,9 @@ const BOOLEAN_SYNC_KEYS = Object.freeze([
   "muteAutoplay",
   "imageSofteningEnabled",
   "readingRuler",
+  "focusSpotlight",
+  "readingProgress",
+  "readerChunking",
   "aiHelperEnabled",
   "aiGentleSuggestions",
   "assistPanelDefaultOpen",
@@ -138,6 +154,19 @@ export const COMFORT_PRESETS = Object.freeze({
     adRemovalEnabled: true,
     reduceContrastEnabled: true,
     aiGentleSuggestions: false
+  }),
+  "adhd-focus": Object.freeze({
+    themePreset: THEME_PRESETS.original,
+    pageDensity: PAGE_DENSITIES.spacious,
+    lineHeight: 1.8,
+    readableFontEnabled: true,
+    reduceMotion: true,
+    muteAutoplay: true,
+    adRemovalEnabled: true,
+    focusSpotlight: true,
+    focusSpotlightScope: SPOTLIGHT_SCOPES.paragraph,
+    readingProgress: true,
+    readerChunking: true
   })
 });
 
@@ -149,6 +178,13 @@ export function normalizeSyncSettings(value = {}) {
     : DEFAULT_SYNC_SETTINGS.activeComfortPreset;
   settings.textScale = clampInteger(settings.textScale, 80, 140, DEFAULT_SYNC_SETTINGS.textScale);
   settings.lineHeight = clampNumber(settings.lineHeight, 1.4, 2.1, DEFAULT_SYNC_SETTINGS.lineHeight);
+  settings.letterSpacing = clampNumber(settings.letterSpacing, 0, 0.12, DEFAULT_SYNC_SETTINGS.letterSpacing);
+  settings.readingWidth = normalizeReadingWidth(settings.readingWidth);
+  settings.focusSpotlightScope = normalizeEnum(
+    settings.focusSpotlightScope,
+    SPOTLIGHT_SCOPES,
+    DEFAULT_SYNC_SETTINGS.focusSpotlightScope
+  );
   settings.pageDensity = normalizeEnum(settings.pageDensity, PAGE_DENSITIES, DEFAULT_SYNC_SETTINGS.pageDensity);
   settings.themePreset = normalizeEnum(settings.themePreset, THEME_PRESETS, DEFAULT_SYNC_SETTINGS.themePreset);
   if (
@@ -243,6 +279,14 @@ function clampNumber(value, min, max, fallback) {
   const parsed = Number.parseFloat(String(value));
   if (!Number.isFinite(parsed)) return fallback;
   return Math.min(max, Math.max(min, parsed));
+}
+
+// Reading width is a line-length cap in `ch`. 0 means off; any other value is
+// clamped to a comfortable measure range.
+function normalizeReadingWidth(value) {
+  const parsed = Number.parseInt(String(value), 10);
+  if (!Number.isFinite(parsed) || parsed <= 0) return 0;
+  return Math.min(100, Math.max(45, parsed));
 }
 
 function isValidOrigin(value) {

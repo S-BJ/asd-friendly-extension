@@ -11,6 +11,11 @@ export const FEATURE_KEYS = Object.freeze({
   communityAssist: "communityAssistEnabled",
   adRemoval: "adRemovalEnabled",
   readingRuler: "readingRuler",
+  focusSpotlight: "focusSpotlight",
+  readingProgress: "readingProgress",
+  letterSpacing: "letterSpacing",
+  readingWidth: "readingWidth",
+  readerChunking: "readerChunking",
   imageSoftening: "imageSofteningEnabled",
   aiHelper: "aiHelperEnabled",
   aiGentleSuggestions: "aiGentleSuggestions",
@@ -71,6 +76,36 @@ export const FEATURE_DEFAULT_POLICY = Object.freeze({
     globalToggle: true,
     siteOverride: false,
     evidence: "individual-preference"
+  },
+  [FEATURE_KEYS.focusSpotlight]: {
+    defaultEnabled: false,
+    globalToggle: true,
+    siteOverride: true,
+    evidence: "plausible-place-keeping"
+  },
+  [FEATURE_KEYS.readingProgress]: {
+    defaultEnabled: false,
+    globalToggle: true,
+    siteOverride: true,
+    evidence: "time-blindness-support"
+  },
+  [FEATURE_KEYS.letterSpacing]: {
+    defaultEnabled: false,
+    globalToggle: true,
+    siteOverride: false,
+    evidence: "readability-support-preference-varies"
+  },
+  [FEATURE_KEYS.readingWidth]: {
+    defaultEnabled: false,
+    globalToggle: true,
+    siteOverride: false,
+    evidence: "readability-support-preference-varies"
+  },
+  [FEATURE_KEYS.readerChunking]: {
+    defaultEnabled: false,
+    globalToggle: true,
+    siteOverride: false,
+    evidence: "segment-content"
   },
   [FEATURE_KEYS.imageSoftening]: {
     defaultEnabled: false,
