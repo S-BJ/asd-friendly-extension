@@ -1,7 +1,7 @@
 param(
   [string]$StartUrl = "https://example.com/",
   [switch]$ResetProfile,
-  [ValidateSet("auto", "chrome-for-testing", "edge", "chrome")]
+  [ValidateSet("auto", "chrome-for-testing", "edge", "chrome", "brave")]
   [string]$Browser = "auto",
   [int]$RemoteDebuggingPort = 0
 )
@@ -20,12 +20,18 @@ $chromeCandidates = @(
   "C:\Program Files\Google\Chrome\Application\chrome.exe",
   "C:\Program Files (x86)\Google\Chrome\Application\chrome.exe"
 )
+$braveCandidates = @(
+  "C:\Program Files\BraveSoftware\Brave-Browser\Application\brave.exe",
+  "C:\Program Files (x86)\BraveSoftware\Brave-Browser\Application\brave.exe",
+  (Join-Path $env:LOCALAPPDATA "BraveSoftware\Brave-Browser\Application\brave.exe")
+)
 
 switch ($Browser) {
   "chrome-for-testing" { $browserCandidates = $chromeForTestingCandidates }
   "edge" { $browserCandidates = $edgeCandidates }
   "chrome" { $browserCandidates = $chromeCandidates }
-  default { $browserCandidates = @($chromeForTestingCandidates + $edgeCandidates + $chromeCandidates) }
+  "brave" { $browserCandidates = $braveCandidates }
+  default { $browserCandidates = @($chromeForTestingCandidates + $edgeCandidates + $chromeCandidates + $braveCandidates) }
 }
 
 $browserPath = $browserCandidates | Where-Object { Test-Path -LiteralPath $_ } | Select-Object -First 1

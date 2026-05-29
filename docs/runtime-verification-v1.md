@@ -1,0 +1,74 @@
+---
+name: runtime-verification
+description: How to load and manually verify the built extension in Chromium browsers (Edge/Brave/Chrome) and Firefox.
+type: docs
+updated: 2026-05-30
+---
+
+# Runtime Verification — v1
+
+Tests (`npm test`) cover pure logic only. This is the on-device check: load the build and confirm the UI behaves. Do this in at least one Chromium browser + Firefox.
+
+## 0. Build first
+
+```powershell
+npm run build           # dist/extension  (Chromium: Chrome/Edge/Brave/Opera/Vivaldi)
+npm run build:firefox   # dist/firefox
+```
+
+## 1. Chromium (Edge / Brave / Chrome)
+
+### Fastest: isolated-profile launcher (loads the extension automatically)
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\launch-isolated-chrome.ps1 -Browser edge
+powershell -ExecutionPolicy Bypass -File .\scripts\launch-isolated-chrome.ps1 -Browser brave
+```
+
+It opens a throwaway profile with `dist/extension` side-loaded and lands on `chrome://extensions` + a test page. Add `-ResetProfile` for a clean slate.
+
+### Manual load (any Chromium browser)
+
+1. Open `edge://extensions` / `brave://extensions` / `chrome://extensions`.
+2. Enable **Developer mode**.
+3. **Load unpacked** → select `dist/extension`.
+4. Pin the action icon; open the popup.
+
+### Optional: automated toggle check over CDP
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\launch-isolated-chrome.ps1 -Browser edge -RemoteDebuggingPort 9224
+$env:ASD_TOGGLE_CDP_PORT="9224"; npm run verify:toggles
+```
+
+## 2. Firefox
+
+1. `npm run build:firefox`.
+2. Open `about:debugging#/runtime/this-firefox`.
+3. **Load Temporary Add-on…** → select `dist/firefox/manifest.json`.
+4. Inspect the background: same page → the add-on's **Inspect** button → Console, to catch service-worker errors.
+
+Firefox caveats to watch (the override sets `strict_min_version: 121`, first version with `background.service_worker`):
+
+- If the background fails to register, the target Firefox may need an event-page background instead — replace `background` wholesale in `build/manifest-overrides/firefox.json` with `{ "scripts": ["background/index.js"] }` and rebuild.
+- Confirm `declarativeNetRequest` ad-block toggling works (FF 128+).
+- Confirm `commands` shortcuts register (`about:addons` → manage → shortcuts).
+
+## 3. Feature checklist (run in each browser)
+
+On a normal article page with the extension enabled:
+
+- [ ] Popup opens; toggles persist after reopening
+- [ ] Comfort presets apply (try **ADHD focus**)
+- [ ] **Focus spotlight**: dims page, follows pointer (paragraph + line scope)
+- [ ] **Reading progress**: top bar + "~N min left" on an article
+- [ ] **Letter spacing / reading width / chunking** visibly change body text
+- [ ] **Quick toggle** (enable `showQuickToggle`): floating button bottom-left toggles work
+- [ ] **Shortcuts**: Alt+2 on/off, Alt+3 spotlight, Alt+4 reader (rebind at the browser's shortcuts page)
+- [ ] **Ad/distraction collapse**, **reduce motion**, **reader mode** behave
+- [ ] **Sensitive pages** (a login/checkout page): spotlight/progress/theme back off
+- [ ] **AI helper** (with a key): "Explain this page" shows Key points first
+
+## 4. Reporting issues
+
+Note browser + version, the page URL, and the console error (popup: right-click → Inspect; background: the extensions page → service worker/Inspect; content: page DevTools console).
