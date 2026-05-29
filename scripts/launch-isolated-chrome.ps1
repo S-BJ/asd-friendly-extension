@@ -3,12 +3,14 @@ param(
   [switch]$ResetProfile,
   [ValidateSet("auto", "chrome-for-testing", "edge", "chrome", "brave")]
   [string]$Browser = "auto",
-  [int]$RemoteDebuggingPort = 0
+  [int]$RemoteDebuggingPort = 0,
+  [ValidatePattern('^\.chrome-test-profile')]
+  [string]$ProfileName = ".chrome-test-profile"
 )
 
 $projectRoot = Split-Path -Parent $PSScriptRoot
 $extensionRoot = Join-Path $projectRoot "dist\extension"
-$profileDir = Join-Path $projectRoot ".chrome-test-profile"
+$profileDir = Join-Path $projectRoot $ProfileName
 $chromeForTestingCandidates = @(
   "C:\Program Files\Google\Chrome for Testing\Application\chrome.exe"
 )
@@ -57,9 +59,9 @@ if (-not (Test-Path -LiteralPath (Join-Path $extensionRoot "manifest.json"))) {
 if ($ResetProfile -and (Test-Path -LiteralPath $profileDir)) {
   $resolvedProjectRoot = [System.IO.Path]::GetFullPath($projectRoot)
   $resolvedProfileDir = [System.IO.Path]::GetFullPath($profileDir)
-  $expectedProfileDir = Join-Path $resolvedProjectRoot ".chrome-test-profile"
+  $leaf = Split-Path -Leaf $resolvedProfileDir
 
-  if ($resolvedProfileDir -ne $expectedProfileDir) {
+  if (-not $resolvedProfileDir.StartsWith($resolvedProjectRoot + [System.IO.Path]::DirectorySeparatorChar) -or $leaf -notlike ".chrome-test-profile*") {
     throw "Profile deletion path validation failed: $resolvedProfileDir"
   }
 

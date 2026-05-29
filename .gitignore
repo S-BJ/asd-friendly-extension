@@ -9,7 +9,7 @@ server/.env.local
 
 dist/
 audit-reports/
-.chrome-test-profile/
+.chrome-test-profile*/
 
 *.log
 .DS_Store
