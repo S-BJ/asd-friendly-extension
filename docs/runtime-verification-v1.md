@@ -47,7 +47,7 @@ $env:ASD_TOGGLE_CDP_PORT="9224"; npm run verify:toggles
 $env:ASD_TOGGLE_CDP_PORT="9224"; $env:ASD_EXTENSION_ID="<id>"; npm run verify:toggles
 ```
 
-Verified on Edge 148 (Chromium): **30/30 checks pass** — generalizes to Chrome/Brave/other Chromium browsers (same engine). Firefox is not yet device-verified.
+Verified on Edge 148 (Chromium): **30/30 checks pass** — generalizes to Chrome/Brave/other Chromium browsers (same engine). Firefox: `dist/firefox` builds with a dual-key event-page background and passes `web-ext lint --self-hosted` (0 errors); not yet device-verified — load it via §2 and run the §3 checklist.
 
 ## 2. Firefox
 
@@ -56,11 +56,11 @@ Verified on Edge 148 (Chromium): **30/30 checks pass** — generalizes to Chrome
 3. **Load Temporary Add-on…** → select `dist/firefox/manifest.json`.
 4. Inspect the background: same page → the add-on's **Inspect** button → Console, to catch service-worker errors.
 
-Firefox caveats to watch (the override sets `strict_min_version: 121`, first version with `background.service_worker`):
+Firefox does not support `background.service_worker`, so `firefox.json` adds `background.scripts` (dual-key event page) and the override already ships in `dist/firefox`. `strict_min_version: 140` clears the dual-key background-start fix (bug 1860304, FF 121), older-Gecko host-permission (≤126) and DNR static-ruleset reload (≤132) issues, and is the first version honoring `data_collection_permissions`. Caveats to confirm on device:
 
-- If the background fails to register, the target Firefox may need an event-page background instead — replace `background` wholesale in `build/manifest-overrides/firefox.json` with `{ "scripts": ["background/index.js"] }` and rebuild.
-- Confirm `declarativeNetRequest` ad-block toggling works (FF 128+).
-- Confirm `commands` shortcuts register (`about:addons` → manage → shortcuts).
+- Background registers without error (about:debugging → this add-on → Inspect → Console). The module event page should load `ai-client.js`/`shared/*` imports cleanly.
+- `declarativeNetRequest` ad-block toggling works (FF 113+ for static rulesets).
+- `commands` shortcuts register (`about:addons` → manage → shortcuts).
 
 ## 3. Feature checklist (run in each browser)
 

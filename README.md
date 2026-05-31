@@ -52,7 +52,7 @@ npm run build      # dist/extension
 npm run package    # dist/chromium.zip (Chrome Web Store / Edge Add-ons / Opera)
 ```
 
-Edge can use a separate listing via `npm run build:edge`. Firefox is scaffolded (`npm run build:firefox` → `dist/firefox`) but not yet device-verified. Safari is out of scope (needs macOS + Xcode). See `docs/multi-browser-support-v1.md`.
+Edge can use a separate listing via `npm run build:edge`. Firefox (`npm run build:firefox` → `dist/firefox`) uses a dual-key event-page background so the module background loads on Gecko, and passes `web-ext lint` with 0 errors; it still needs an on-device load via `about:debugging` to be fully verified. Safari is out of scope (needs macOS + Xcode). See `docs/multi-browser-support-v1.md`.
 
 AI can run directly from the extension when you enter an OpenAI API key in the popup.
 
