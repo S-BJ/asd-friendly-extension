@@ -47,11 +47,22 @@ const SENSITIVE_PATTERNS = Object.freeze([
   ]
 ]);
 
-export function detectSensitivePageKind({ url = "", title = "", visibleText = "" } = {}) {
+const BODY_TEXT_ONLY_SENSITIVE_KINDS = new Set([]);
+
+export function detectSensitivePageKind({
+  url = "",
+  title = "",
+  visibleText = "",
+  hasInteractiveSensitiveControl = false
+} = {}) {
   const pageHaystack = `${url} ${title}`.slice(0, 1000);
   const visibleHaystack = String(visibleText || "").slice(0, 4000);
+  const canUseVisibleText = Boolean(hasInteractiveSensitiveControl);
   for (const [kind, pagePattern, visiblePattern] of SENSITIVE_PATTERNS) {
-    if (pagePattern.test(pageHaystack) || visiblePattern.test(visibleHaystack)) return kind;
+    if (pagePattern.test(pageHaystack)) return kind;
+    if ((canUseVisibleText || BODY_TEXT_ONLY_SENSITIVE_KINDS.has(kind)) && visiblePattern.test(visibleHaystack)) {
+      return kind;
+    }
   }
   return SENSITIVE_PAGE_KINDS.none;
 }

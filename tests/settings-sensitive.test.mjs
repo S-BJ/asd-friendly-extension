@@ -96,6 +96,31 @@ test("sensitive page detection catches common risky contexts", () => {
   assert.equal(isSensitivePage({ title: "Account security password" }), true);
 });
 
+test("sensitive page detection ignores body-only sensitive keywords without sensitive controls", () => {
+  assert.equal(
+    detectSensitivePageKind({
+      url: "https://news.naver.com/",
+      title: "네이버 뉴스",
+      visibleText: [
+        "주요 뉴스 신분증 확인 절차 논란",
+        "계약서 검토와 약관 동의, 개인정보 수집 동의 안내가 footer에 표시됩니다."
+      ].join("\n")
+    }),
+    SENSITIVE_PAGE_KINDS.none
+  );
+});
+
+test("sensitive page detection honors body keywords when a password control is present", () => {
+  assert.equal(
+    detectSensitivePageKind({
+      title: "Member access",
+      visibleText: "아이디 비밀번호 로그인",
+      hasInteractiveSensitiveControl: true
+    }),
+    SENSITIVE_PAGE_KINDS.login
+  );
+});
+
 test("sensitive page detection does not treat ordinary image pages as uploads", () => {
   assert.equal(
     detectSensitivePageKind({
@@ -152,7 +177,8 @@ test("sensitive page detection still catches login forms", () => {
   assert.equal(
     detectSensitivePageKind({
       title: "Member access",
-      visibleText: "아이디 비밀번호 로그인"
+      visibleText: "아이디 비밀번호 로그인",
+      hasInteractiveSensitiveControl: true
     }),
     SENSITIVE_PAGE_KINDS.login
   );

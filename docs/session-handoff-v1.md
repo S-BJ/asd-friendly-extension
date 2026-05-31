@@ -20,6 +20,10 @@ The extension should stay conservative. Do not use AI or DOM heuristics to click
 
 Recent focus:
 
+- Popup regroup: flat list → top always-visible zone (On + comfort preset + language) plus 6 collapsible `<details class="group">` sections. JS still binds purely by `data-setting`/`data-site-override`/`data-i18n`/IDs.
+- Classifier + sensitive-page fixes (verified live in loaded-extension mode): news fronts no longer misclassify as `community` (BBC → `reader`); content pages that merely mention sensitive words no longer get flagged sensitive — body-text matches now require an interactive sensitive control (`hasInteractiveSensitiveControl`), so news.naver.com softens 22/22 instead of 0/22. See `docs/site-audit-progress-v1.md` (2026-05-31).
+- Audit harness now reaches true loaded-extension mode: quoted `--load-extension` path in the launcher (the "바탕 화면" space was breaking it), Chrome for Testing for side-loading, `wakeExtension()` to wake the MV3 worker, and per-frame metric aggregation so iframe bodies (Naver Blog `#mainFrame`) are measured.
+- Firefox compatibility: dual-key event-page background (`service_worker` + `scripts` + `type: module`) in `build/manifest-overrides/firefox.json`, since Firefox does not support `background.service_worker`. `dist/firefox` passes `web-ext lint --self-hosted` with 0 errors. `data_collection_permissions` declared. Remaining: on-device load via `about:debugging` (see `docs/runtime-verification-v1.md` §2). Details in `docs/multi-browser-support-v1.md`.
 - DCInside image softening and ad collapsing
 - broad site audit across video, text, community, news, blog, business, SNS, ad-heavy, and public-service sites
 - AI audit mode for summarized runtime metrics

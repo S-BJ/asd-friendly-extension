@@ -51,14 +51,24 @@ const sites = [
     url: "https://blog.google/products/search/"
   },
   {
+    category: "blog",
+    name: "NaverBlog",
+    url: "https://blog.naver.com/naver_diary"
+  },
+  {
+    category: "news",
+    name: "YonhapNews",
+    url: "https://www.yna.co.kr/"
+  },
+  {
+    category: "news",
+    name: "NaverNews",
+    url: "https://news.naver.com/"
+  },
+  {
     category: "business",
     name: "Microsoft",
     url: "https://www.microsoft.com/en-us/"
-  },
-  {
-    category: "sns",
-    name: "X",
-    url: "https://x.com/"
   },
   {
     category: "ad-heavy",
@@ -255,6 +265,12 @@ async function main() {
   const browserInfo = await fetchJson(`http://127.0.0.1:${port}/json/version`);
   const cdp = await CdpConnection.connect(browserInfo.webSocketDebuggerUrl);
   try {
+    // An MV3 service worker is dormant until an event wakes it, so a cold
+    // Target.getTargets often misses it and the run silently falls back to
+    // simulation. Load a real page first: its content script messages the
+    // background, waking the worker so target discovery (and the real
+    // all_frames extension) can be used.
+    await wakeExtension(cdp).catch(() => {});
     const extensionTarget = await waitForExtensionTarget(cdp).catch(() => null);
     const auditAssets = extensionTarget ? null : await readAuditAssets();
 
@@ -298,6 +314,20 @@ async function fetchJson(url) {
   const response = await fetch(url);
   if (!response.ok) throw new Error(`Failed to fetch ${url}: ${response.status}`);
   return response.json();
+}
+
+async function wakeExtension(cdp) {
+  const { targetId } = await cdp.send("Target.createTarget", { url: "about:blank" });
+  try {
+    const { sessionId } = await cdp.send("Target.attachToTarget", { targetId, flatten: true });
+    await cdp.send("Page.enable", {}, sessionId);
+    const loaded = cdp.waitForEvent("Page.loadEventFired", sessionId, 15_000).catch(() => null);
+    await cdp.send("Page.navigate", { url: "https://example.com/" }, sessionId);
+    await loaded;
+    await delay(1500);
+  } finally {
+    await cdp.send("Target.closeTarget", { targetId }).catch(() => {});
+  }
 }
 
 async function waitForExtensionTarget(cdp) {
@@ -385,7 +415,7 @@ async function auditSite(cdp, site, auditAssets) {
     }, sessionId).catch(() => {});
     await delay(1500);
 
-    const metrics = await evaluateMetrics(cdp, sessionId);
+    const metrics = await evaluateMetrics(cdp, sessionId, !auditAssets);
     return {
       ...site,
       ok: true,
@@ -482,7 +512,7 @@ async function waitForFoundation(cdp, sessionId) {
   }
 }
 
-async function evaluateMetrics(cdp, sessionId) {
+async function evaluateMetrics(cdp, sessionId, aggregateFrames = false) {
   const expression = `(() => {
     const adSelector = [
       "ins.adsbygoogle",
@@ -602,11 +632,91 @@ async function evaluateMetrics(cdp, sessionId) {
       }))
     };
   })()`;
-  const result = await cdp.send("Runtime.evaluate", {
+  const topResult = await cdp.send("Runtime.evaluate", {
     expression,
     returnByValue: true
   }, sessionId);
-  return result.result?.value || {};
+  const base = topResult.result?.value || {};
+  // Frame aggregation only makes sense when the real extension is loaded (it runs
+  // in all frames). In simulation mode the runtime is injected into the top frame
+  // only, so summing child-frame images would understate the blur ratio.
+  if (!aggregateFrames) return { ...base, frameCount: 0 };
+  return aggregateAcrossFrames(cdp, sessionId, expression, base);
+}
+
+// Content runs in all frames (manifest all_frames:true), but the top document
+// alone misses iframe-hosted bodies (e.g. Naver Blog's #mainFrame). Sum the same
+// metrics from every child frame via an isolated world so the verdict is real.
+async function aggregateAcrossFrames(cdp, sessionId, expression, base) {
+  const countKeys = [
+    "visibleImageCount",
+    "largeImageCount",
+    "blurredLargeImageCount",
+    "visibleMediaSurfaceCount",
+    "largeMediaSurfaceCount",
+    "blurredLargeMediaSurfaceCount",
+    "collapsedAdCount",
+    "restoreButtonCount",
+    "visibleAdCandidateCount"
+  ];
+
+  let childFrameIds = [];
+  try {
+    const { frameTree } = await cdp.send("Page.getFrameTree", {}, sessionId);
+    childFrameIds = collectChildFrameIds(frameTree);
+  } catch {
+    return { ...base, frameCount: 0 };
+  }
+
+  const aggregated = { ...base };
+  const sampleImages = [...(base.sampleLargeImages || [])];
+  const sampleMedia = [...(base.sampleLargeMediaSurfaces || [])];
+  let measuredFrames = 0;
+  let skippedFrames = 0;
+
+  for (const frameId of childFrameIds) {
+    try {
+      const { executionContextId } = await cdp.send("Page.createIsolatedWorld", {
+        frameId,
+        worldName: "asd_audit_metrics"
+      }, sessionId);
+      const frameResult = await cdp.send("Runtime.evaluate", {
+        expression,
+        contextId: executionContextId,
+        returnByValue: true
+      }, sessionId);
+      const value = frameResult.result?.value;
+      if (!value) continue;
+      measuredFrames += 1;
+      for (const key of countKeys) {
+        aggregated[key] = (aggregated[key] || 0) + (value[key] || 0);
+      }
+      if (value.imageSofteningActive) aggregated.imageSofteningActive = true;
+      if (value.adRemovalActive) aggregated.adRemovalActive = true;
+      sampleImages.push(...(value.sampleLargeImages || []));
+      sampleMedia.push(...(value.sampleLargeMediaSurfaces || []));
+    } catch {
+      // Cross-origin or detached frames may refuse a context; record, don't hide.
+      skippedFrames += 1;
+    }
+  }
+
+  aggregated.sampleLargeImages = sampleImages.slice(0, 5);
+  aggregated.sampleLargeMediaSurfaces = sampleMedia.slice(0, 5);
+  aggregated.frameCount = measuredFrames;
+  aggregated.skippedFrameCount = skippedFrames;
+  return aggregated;
+}
+
+function collectChildFrameIds(frameTree) {
+  const ids = [];
+  const walk = (node, isRoot) => {
+    if (!node) return;
+    if (!isRoot && node.frame?.id) ids.push(node.frame.id);
+    for (const child of node.childFrames || []) walk(child, false);
+  };
+  walk(frameTree, true);
+  return ids;
 }
 
 async function runAiAudit(report) {

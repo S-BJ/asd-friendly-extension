@@ -46,16 +46,7 @@
         </label>
       </header>
 
-      <section class="section">
-        <label class="field">
-          <span data-i18n="language">Language</span>
-          <select id="uiLanguage" data-setting="uiLanguage">
-            <option value="auto" data-i18n="languageAuto">Auto</option>
-            <option value="en" data-i18n="languageEnglish">English</option>
-            <option value="ko" data-i18n="languageKorean">Korean</option>
-          </select>
-        </label>
-
+      <section class="section primary">
         <label class="field">
           <span data-i18n="comfortPreset">Comfort preset</span>
           <select id="activeComfortPreset" data-setting="activeComfortPreset">
@@ -68,117 +59,162 @@
           </select>
         </label>
 
-        <div class="grid">
-          <label class="toggle">
-            <input type="checkbox" data-setting="reduceMotion">
-            <span data-i18n="reduceMotion">Reduce motion</span>
-          </label>
-          <label class="toggle">
-            <input type="checkbox" data-setting="reduceContrastEnabled">
-            <span data-i18n="reduceContrastShort">Reduce contrast</span>
-          </label>
-          <label class="toggle">
-            <input type="checkbox" data-setting="readableFontEnabled">
-            <span data-i18n="readableFontShort">Readable font</span>
-          </label>
-          <label class="toggle">
-            <input type="checkbox" data-setting="adRemovalEnabled">
-            <span data-i18n="hideAds">Hide ads</span>
-          </label>
-          <label class="toggle">
-            <input type="checkbox" data-setting="muteAutoplay">
-            <span data-i18n="muteAutoplay">Mute autoplay</span>
-          </label>
-          <label class="toggle">
-            <input type="checkbox" data-setting="readerMode">
-            <span data-i18n="readerMode">Reader mode</span>
-          </label>
-          <label class="toggle">
-            <input type="checkbox" data-setting="communityAssistEnabled">
-            <span data-i18n="communityAssist">Community assist</span>
-          </label>
-          <label class="toggle">
-            <input type="checkbox" data-setting="readingRuler">
-            <span data-i18n="readingRuler">Reading ruler</span>
-          </label>
-          <label class="toggle">
-            <input type="checkbox" data-setting="showActiveStateIndicator">
-            <span data-i18n="stateIndicator">State indicator</span>
-          </label>
-          <label class="toggle">
-            <input type="checkbox" data-setting="showQuickToggle">
-            <span data-i18n="quickToggle">Quick toggle button</span>
-          </label>
-          <label class="toggle">
-            <input type="checkbox" data-setting="imageSofteningEnabled">
-            <span data-i18n="imageSoftening">Image softening</span>
-          </label>
-        </div>
-      </section>
-
-      <section class="section">
         <label class="field">
-          <span data-i18n="pageDensity">Page density</span>
-          <select id="pageDensity" data-setting="pageDensity">
-            <option value="compact" data-i18n="densityCompact">Compact</option>
-            <option value="normal" data-i18n="densityNormal">Normal</option>
-            <option value="spacious" data-i18n="densitySpacious">Spacious</option>
-          </select>
-        </label>
-        <div class="range-row">
-          <label for="textScale" data-i18n="textSize">Text size</label>
-          <output id="textScale-output"></output>
-          <input id="textScale" type="range" min="80" max="140" step="5" data-setting="textScale">
-        </div>
-        <div class="range-row">
-          <label for="lineHeight" data-i18n="lineSpacing">Line spacing</label>
-          <output id="lineHeight-output"></output>
-          <input id="lineHeight" type="range" min="1.4" max="2.1" step="0.1" data-setting="lineHeight">
-        </div>
-        <div class="range-row">
-          <label for="letterSpacing" data-i18n="letterSpacing">Letter spacing</label>
-          <output id="letterSpacing-output"></output>
-          <input id="letterSpacing" type="range" min="0" max="0.12" step="0.01" data-setting="letterSpacing">
-        </div>
-      </section>
-
-      <section class="section">
-        <h2 data-i18n="adhdHeading">Focus &amp; reading</h2>
-        <p class="section-copy" data-i18n="adhdCopy">Supports for attention and place-keeping while reading.</p>
-        <div class="grid">
-          <label class="toggle">
-            <input type="checkbox" data-setting="focusSpotlight">
-            <span data-i18n="focusSpotlight">Focus spotlight</span>
-          </label>
-          <label class="toggle">
-            <input type="checkbox" data-setting="readingProgress">
-            <span data-i18n="readingProgress">Reading progress</span>
-          </label>
-          <label class="toggle">
-            <input type="checkbox" data-setting="readerChunking">
-            <span data-i18n="readerChunking">Chunk long text</span>
-          </label>
-        </div>
-        <label class="field">
-          <span data-i18n="focusSpotlightScope">Spotlight area</span>
-          <select id="focusSpotlightScope" data-setting="focusSpotlightScope">
-            <option value="paragraph" data-i18n="spotlightParagraph">Paragraph</option>
-            <option value="line" data-i18n="spotlightLine">Line</option>
-          </select>
-        </label>
-        <label class="field">
-          <span data-i18n="readingWidth">Reading width</span>
-          <select id="readingWidth" data-setting="readingWidth">
-            <option value="0" data-i18n="widthOff">Off</option>
-            <option value="55" data-i18n="widthNarrow">Narrow</option>
-            <option value="65" data-i18n="widthMedium">Medium</option>
-            <option value="80" data-i18n="widthWide">Wide</option>
+          <span data-i18n="language">Language</span>
+          <select id="uiLanguage" data-setting="uiLanguage">
+            <option value="auto" data-i18n="languageAuto">Auto</option>
+            <option value="en" data-i18n="languageEnglish">English</option>
+            <option value="ko" data-i18n="languageKorean">Korean</option>
           </select>
         </label>
       </section>
 
-      <section class="section">
-        <h2 data-i18n="aiHelperHeading">AI helper</h2>
+      <details class="group" open>
+        <summary>
+          <span class="group-title" data-i18n="groupAppearance">Appearance</span>
+          <span class="group-hint" data-i18n="hintAppearance">Contrast, font, spacing, size</span>
+        </summary>
+        <div class="group-body">
+          <div class="grid">
+            <label class="toggle">
+              <input type="checkbox" data-setting="reduceMotion">
+              <span data-i18n="reduceMotion">Reduce motion</span>
+            </label>
+            <label class="toggle">
+              <input type="checkbox" data-setting="reduceContrastEnabled">
+              <span data-i18n="reduceContrastShort">Reduce contrast</span>
+            </label>
+            <label class="toggle">
+              <input type="checkbox" data-setting="readableFontEnabled">
+              <span data-i18n="readableFontShort">Readable font</span>
+            </label>
+            <label class="toggle">
+              <input type="checkbox" data-setting="imageSofteningEnabled">
+              <span data-i18n="imageSoftening">Image softening</span>
+            </label>
+          </div>
+          <label class="field">
+            <span data-i18n="pageDensity">Page density</span>
+            <select id="pageDensity" data-setting="pageDensity">
+              <option value="compact" data-i18n="densityCompact">Compact</option>
+              <option value="normal" data-i18n="densityNormal">Normal</option>
+              <option value="spacious" data-i18n="densitySpacious">Spacious</option>
+            </select>
+          </label>
+          <div class="range-row">
+            <label for="textScale" data-i18n="textSize">Text size</label>
+            <output id="textScale-output"></output>
+            <input id="textScale" type="range" min="80" max="140" step="5" data-setting="textScale">
+          </div>
+          <div class="range-row">
+            <label for="lineHeight" data-i18n="lineSpacing">Line spacing</label>
+            <output id="lineHeight-output"></output>
+            <input id="lineHeight" type="range" min="1.4" max="2.1" step="0.1" data-setting="lineHeight">
+          </div>
+          <div class="range-row">
+            <label for="letterSpacing" data-i18n="letterSpacing">Letter spacing</label>
+            <output id="letterSpacing-output"></output>
+            <input id="letterSpacing" type="range" min="0" max="0.12" step="0.01" data-setting="letterSpacing">
+          </div>
+        </div>
+      </details>
+
+      <details class="group">
+        <summary>
+          <span class="group-title" data-i18n="adhdHeading">Focus &amp; reading</span>
+          <span class="group-hint" data-i18n="hintReading">Reader, spotlight, progress</span>
+        </summary>
+        <div class="group-body">
+          <p class="section-copy" data-i18n="adhdCopy">Supports for attention and place-keeping while reading.</p>
+          <div class="grid">
+            <label class="toggle">
+              <input type="checkbox" data-setting="readerMode">
+              <span data-i18n="readerMode">Reader mode</span>
+            </label>
+            <label class="toggle">
+              <input type="checkbox" data-setting="readingRuler">
+              <span data-i18n="readingRuler">Reading ruler</span>
+            </label>
+            <label class="toggle">
+              <input type="checkbox" data-setting="focusSpotlight">
+              <span data-i18n="focusSpotlight">Focus spotlight</span>
+            </label>
+            <label class="toggle">
+              <input type="checkbox" data-setting="readingProgress">
+              <span data-i18n="readingProgress">Reading progress</span>
+            </label>
+            <label class="toggle">
+              <input type="checkbox" data-setting="readerChunking">
+              <span data-i18n="readerChunking">Chunk long text</span>
+            </label>
+          </div>
+          <label class="field">
+            <span data-i18n="focusSpotlightScope">Spotlight area</span>
+            <select id="focusSpotlightScope" data-setting="focusSpotlightScope">
+              <option value="paragraph" data-i18n="spotlightParagraph">Paragraph</option>
+              <option value="line" data-i18n="spotlightLine">Line</option>
+            </select>
+          </label>
+          <label class="field">
+            <span data-i18n="readingWidth">Reading width</span>
+            <select id="readingWidth" data-setting="readingWidth">
+              <option value="0" data-i18n="widthOff">Off</option>
+              <option value="55" data-i18n="widthNarrow">Narrow</option>
+              <option value="65" data-i18n="widthMedium">Medium</option>
+              <option value="80" data-i18n="widthWide">Wide</option>
+            </select>
+          </label>
+        </div>
+      </details>
+
+      <details class="group">
+        <summary>
+          <span class="group-title" data-i18n="groupDistractions">Distractions &amp; media</span>
+          <span class="group-hint" data-i18n="hintDistractions">Ads, autoplay, community</span>
+        </summary>
+        <div class="group-body">
+          <div class="grid">
+            <label class="toggle">
+              <input type="checkbox" data-setting="adRemovalEnabled">
+              <span data-i18n="hideAds">Hide ads</span>
+            </label>
+            <label class="toggle">
+              <input type="checkbox" data-setting="muteAutoplay">
+              <span data-i18n="muteAutoplay">Mute autoplay</span>
+            </label>
+            <label class="toggle">
+              <input type="checkbox" data-setting="communityAssistEnabled">
+              <span data-i18n="communityAssist">Community assist</span>
+            </label>
+          </div>
+        </div>
+      </details>
+
+      <details class="group">
+        <summary>
+          <span class="group-title" data-i18n="groupInterface">Interface</span>
+          <span class="group-hint" data-i18n="hintInterface">Indicator, quick toggle</span>
+        </summary>
+        <div class="group-body">
+          <div class="grid">
+            <label class="toggle">
+              <input type="checkbox" data-setting="showActiveStateIndicator">
+              <span data-i18n="stateIndicator">State indicator</span>
+            </label>
+            <label class="toggle">
+              <input type="checkbox" data-setting="showQuickToggle">
+              <span data-i18n="quickToggle">Quick toggle button</span>
+            </label>
+          </div>
+        </div>
+      </details>
+
+      <details class="group">
+        <summary>
+          <span class="group-title" data-i18n="aiHelperHeading">AI helper</span>
+          <span class="group-hint" data-i18n="hintAi">Explain page, form, selection</span>
+        </summary>
+        <div class="group-body">
         <p class="section-copy" data-i18n="aiHelperCopy">Enter an OpenAI API key for direct use. A self-hosted backend URL is optional.</p>
         <div class="grid">
           <label class="toggle">
@@ -219,10 +255,15 @@
         </div>
 
         <p id="ai-status" class="section-status" role="status" data-i18n="aiStatusIdle">AI results open on the current page.</p>
-      </section>
+        </div>
+      </details>
 
-      <section class="section site-section">
-        <h2 data-i18n="siteExceptions">Current-site exceptions</h2>
+      <details class="group site-group">
+        <summary>
+          <span class="group-title" data-i18n="siteExceptions">Current-site exceptions</span>
+          <span class="group-hint" data-i18n="hintSite">Per-site exceptions</span>
+        </summary>
+        <div class="group-body">
         <div class="grid">
           <label class="toggle">
             <input type="checkbox" data-site-override="disabled">
@@ -269,7 +310,8 @@
             <span data-i18n="noReadingProgress">No progress bar</span>
           </label>
         </div>
-      </section>
+        </div>
+      </details>
 
       <p id="status" role="status"></p>
     </main>

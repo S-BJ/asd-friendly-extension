@@ -78,6 +78,8 @@
     ]
   ];
 
+  const BODY_TEXT_ONLY_SENSITIVE_KINDS = new Set([]);
+
   const DEFAULT_SETTINGS = {
     enabled: true,
     uiLanguage: "auto",
@@ -672,10 +674,14 @@
   function refreshPageClassification() {
     currentReaderTarget = null;
     progressWordsStale = true;
+    const hasSensitiveControl = hasInteractiveSensitiveControl();
+    // TODO: Re-run this classification from a lightweight MutationObserver if SPA-only
+    // sensitive controls render after readyState stops changing.
     currentSensitivePageKind = detectSensitivePageKind({
       url: location.href,
       title: document.title || "",
-      visibleText: document.body?.innerText || ""
+      visibleText: document.body?.innerText || "",
+      hasInteractiveSensitiveControl: hasSensitiveControl
     });
 
     const communityProfile = detectCommunityProfile();
@@ -799,11 +805,12 @@
 
   function detectCommunityProfile() {
     const host = location.hostname.toLowerCase();
+    const path = `${location.pathname} ${location.search}`.toLowerCase();
     const bodyText = normalizeText(document.body?.innerText || "", 4000);
-    const linkCount = document.querySelectorAll("a[href]").length;
     const commentLikeCount = document.querySelectorAll(
       '[class*="comment" i], [id*="comment" i], [class*="reply" i], [id*="reply" i], shreddit-comment'
     ).length;
+    const listLikeCount = document.querySelectorAll("li, tr, article").length;
     const hasKnownHost =
       host.includes("reddit.com") ||
       host.includes("dcinside.com") ||
@@ -811,8 +818,16 @@
       host.includes("clien.net") ||
       host.includes("fmkorea.com");
     const hasCommunityHints = /\b(board|forum|gallery|subreddit|thread|comment|reply|vote|post)\b/i.test(bodyText);
+    // A board-index page (thread list) often has no inline comment widgets, so also
+    // accept a community URL token + a long list + a discussion hint. News/portal
+    // fronts lack the path token, so this stays off them.
+    const hasBoardPathToken = /\b(board|forum|gallery|bbs|community|gall|cafe)\b/.test(path);
+    const looksLikeBoardIndex = hasBoardPathToken && listLikeCount >= 20 && hasCommunityHints;
 
-    if (!hasKnownHost && !((commentLikeCount >= 5 || linkCount >= 80) && hasCommunityHints)) {
+    // For hosts outside the known-community allowlist, require real comment/reply
+    // widgets (or the board-index signal above). A high link count alone matches
+    // news/portal fronts (e.g. BBC) whose body text incidentally says "post".
+    if (!hasKnownHost && !(commentLikeCount >= 5 && hasCommunityHints) && !looksLikeBoardIndex) {
       return { matched: false, subtype: COMMUNITY_SUBTYPES.none };
     }
 
@@ -959,11 +974,94 @@
     );
   }
 
-  function detectSensitivePageKind({ url = "", title = "", visibleText = "" } = {}) {
+  function hasInteractiveSensitiveControl() {
+    const directControlSelector = [
+      'input[type="password"]',
+      'input[type="file"]',
+      'input[autocomplete*="password" i]',
+      'input[autocomplete*="cc-" i]',
+      'input[autocomplete*="one-time-code" i]',
+      'input[name*="password" i]',
+      'input[id*="password" i]',
+      'input[name*="card" i]',
+      'input[id*="card" i]',
+      'input[name*="passport" i]',
+      'input[id*="passport" i]',
+      'input[name*="license" i]',
+      'input[id*="license" i]',
+      'input[name*="ssn" i]',
+      'input[id*="ssn" i]',
+      'input[name*="주민" i]',
+      'input[id*="주민" i]'
+    ].join(",");
+    const directControls = [...document.querySelectorAll(directControlSelector)];
+    if (directControls.some(isVisibleElement)) return true;
+
+    const sensitiveFormPattern =
+      /\b(login|sign[- ]?in|password|2fa|otp|verification code|security code|checkout|payment|billing|credit card|card number|account security|security settings|change password|reset password|verify identity|identity verification|passport|driver license|ssn|medical record|health record|patient portal|clinic appointment|doctor appointment|prescription refill|test result|sign contract|legal document|court filing|accept terms|agree to terms|upload id|id photo|choose file|select file)\b|로그인|비밀번호|인증번호|본인\s*(인증|확인)|결제|카드번호|계정\s*보안|보안\s*설정|주민등록번호|신분증\s*(업로드|촬영|제출)|여권\s*(번호|업로드|제출)|운전면허\s*(번호|업로드)|진료\s*(예약|기록)|처방\s*(전|재발급|리필)|검진\s*(결과|예약)|의료\s*기록|환자\s*포털|계약서|약관\s*(동의|확인)|개인정보\s*(수집|제공|입력|동의)|파일\s*(선택|첨부|업로드)|사진\s*(업로드|첨부|제출|등록|촬영|인증)/i;
+    const forms = [...document.querySelectorAll("form")];
+    if (
+      forms.some((form) => {
+        const controls = [...form.querySelectorAll("input, textarea, select, button")];
+        if (!controls.some(isVisibleElement)) return false;
+        const formText = normalizeText(
+          [
+            form.innerText || "",
+            controls
+              .map((control) =>
+                [
+                  control.getAttribute("aria-label") || "",
+                  control.getAttribute("placeholder") || "",
+                  control.getAttribute("autocomplete") || "",
+                  control.getAttribute("name") || "",
+                  control.getAttribute("id") || "",
+                  control.getAttribute("type") || "",
+                  control.value || ""
+                ].join(" ")
+              )
+              .join(" ")
+          ].join(" "),
+          1600
+        );
+        return sensitiveFormPattern.test(formText);
+      })
+    ) {
+      return true;
+    }
+
+    const sensitiveActionPattern =
+      /\b(accept terms|agree to terms|sign contract)\b|약관\s*동의|개인정보\s*(수집|제공|입력)\s*동의/i;
+    return [...document.querySelectorAll("button, input[type='submit'], input[type='button'], [role='button']")].some(
+      (control) =>
+        isVisibleElement(control) &&
+        sensitiveActionPattern.test(
+          normalizeText(
+            [
+              control.innerText || "",
+              control.value || "",
+              control.getAttribute("aria-label") || "",
+              control.getAttribute("title") || ""
+            ].join(" "),
+            800
+          )
+        )
+    );
+  }
+
+  function detectSensitivePageKind({
+    url = "",
+    title = "",
+    visibleText = "",
+    hasInteractiveSensitiveControl = false
+  } = {}) {
     const pageHaystack = `${url} ${title}`.slice(0, 1000);
     const visibleHaystack = String(visibleText || "").slice(0, 4000);
+    const canUseVisibleText = Boolean(hasInteractiveSensitiveControl);
     for (const [kind, pagePattern, visiblePattern] of SENSITIVE_PATTERNS) {
-      if (pagePattern.test(pageHaystack) || visiblePattern.test(visibleHaystack)) return kind;
+      if (pagePattern.test(pageHaystack)) return kind;
+      if ((canUseVisibleText || BODY_TEXT_ONLY_SENSITIVE_KINDS.has(kind)) && visiblePattern.test(visibleHaystack)) {
+        return kind;
+      }
     }
     return SENSITIVE_PAGE_KINDS.none;
   }
@@ -1338,6 +1436,9 @@
       const parent = current?.parentElement;
       if (!parent || parent === document.body || parent === document.documentElement) break;
       if (isProtectedContent(parent)) break;
+      // Never swallow a navigation/search bar (e.g. YouTube's #masthead-container is
+      // full-width but short, so it looks "peripheral" — collapsing it hides search).
+      if (isInteractiveChrome(parent)) break;
       if (isLikelyAdElement(parent) || isSmallPeripheralBlock(parent)) {
         current = parent;
       }
@@ -1348,6 +1449,7 @@
   function markAdCandidate(element) {
     if (!(element instanceof Element)) return;
     if (isProtectedContent(element)) return;
+    if (isInteractiveChrome(element)) return;
     if (element.hasAttribute("data-asd-ad-collapsed")) return;
     if (element.closest("[data-asd-ad-collapsed]")) return;
     if (element.querySelector("[data-asd-ad-collapsed]")) return;
@@ -1468,6 +1570,18 @@
       ) &&
         !element.matches(AD_CANDIDATE_SELECTOR) &&
         !AD_MARKER_PATTERN.test([element.id, element.className, element.getAttribute("aria-label")].filter(Boolean).join(" "))
+    );
+  }
+
+  // Site chrome we must never collapse as an ad: navigation, search, banners, or
+  // anything wrapping a real form control. Ad blocks have none of these.
+  function isInteractiveChrome(element) {
+    if (!(element instanceof Element)) return false;
+    if (element.matches("header, nav, [role='banner'], [role='navigation'], [role='search']")) return true;
+    return Boolean(
+      element.querySelector(
+        "nav, header, [role='search'], [role='navigation'], [role='banner'], input:not([type='hidden']), textarea, select"
+      )
     );
   }
 

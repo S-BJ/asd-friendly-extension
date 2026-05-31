@@ -56,6 +56,30 @@ test("community profile recognizes Korean discussion hints", () => {
   assert.equal(result.profile, PAGE_PROFILES.community);
 });
 
+test("community profile no longer flags link-heavy news fronts without comment widgets", () => {
+  const documentLike = createDocument({
+    bodyText: "Top stories politics world business sport comment opinion analysis",
+    roots: Array.from({ length: 120 }, (_, index) =>
+      createElement("a", { href: "#", innerText: `Headline ${index}` })
+    )
+  });
+
+  const result = detectCommunityProfile(documentLike);
+  assert.equal(result.profile, PAGE_PROFILES.generic);
+});
+
+test("community profile still recognizes board-index pages via URL token + list + hint", () => {
+  const documentLike = createDocument({
+    bodyText: "gallery board thread list",
+    roots: Array.from({ length: 24 }, (_, index) =>
+      createElement("article", { innerText: `Thread ${index}` })
+    )
+  });
+
+  const result = detectCommunityProfile(documentLike, { path: "/board/lists" });
+  assert.equal(result.profile, PAGE_PROFILES.community);
+});
+
 function createDocument({ roots = [], bodyText = "" } = {}) {
   return {
     body: {

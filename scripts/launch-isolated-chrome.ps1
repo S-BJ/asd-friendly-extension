@@ -72,10 +72,14 @@ if (-not (Test-Path -LiteralPath $profileDir)) {
   New-Item -ItemType Directory -Path $profileDir | Out-Null
 }
 
+# Quote path values: profile/extension paths can contain spaces (e.g. the Korean
+# "바탕 화면" Desktop folder). Without quotes Start-Process splits the arg on the
+# space, so Chrome drops --load-extension and opens the path fragment as a URL —
+# the extension silently never loads (every CDP run then falls back to simulation).
 $arguments = @(
-  "--user-data-dir=$profileDir",
-  "--disable-extensions-except=$extensionRoot",
-  "--load-extension=$extensionRoot",
+  "--user-data-dir=`"$profileDir`"",
+  "--disable-extensions-except=`"$extensionRoot`"",
+  "--load-extension=`"$extensionRoot`"",
   "--no-first-run",
   "--no-default-browser-check",
   "--new-window",

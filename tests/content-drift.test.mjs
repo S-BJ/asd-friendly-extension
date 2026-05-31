@@ -64,11 +64,13 @@ function createContentSensitiveDetector() {
   const context = {};
   vm.runInNewContext(
     `${contentScript.slice(start, end)}
-    function __detectSensitivePageKind({ url = "", title = "", visibleText = "" } = {}) {
+    function __detectSensitivePageKind({ url = "", title = "", visibleText = "", hasInteractiveSensitiveControl = false } = {}) {
       const pageHaystack = \`\${url} \${title}\`.slice(0, 1000);
       const visibleHaystack = String(visibleText || "").slice(0, 4000);
+      const canUseVisibleText = Boolean(hasInteractiveSensitiveControl);
       for (const [kind, pagePattern, visiblePattern] of SENSITIVE_PATTERNS) {
-        if (pagePattern.test(pageHaystack) || visiblePattern.test(visibleHaystack)) return kind;
+        if (pagePattern.test(pageHaystack)) return kind;
+        if (canUseVisibleText && visiblePattern.test(visibleHaystack)) return kind;
       }
       return SENSITIVE_PAGE_KINDS.none;
     }
