@@ -84,6 +84,18 @@ powershell -ExecutionPolicy Bypass -File .\scripts\launch-isolated-chrome.ps1 -B
 
 The local backend only accepts requests from the fixed packaged extension ID by default, so other Chrome extensions on the same machine cannot use your OpenAI key. For unpacked builds, set `ALLOWED_EXTENSION_ORIGINS` to your generated `chrome-extension://...` origin (or a comma/space-separated list). If you really want to accept any unpacked extension during local development, set `ASD_FRIENDLY_ALLOW_ANY_EXTENSION_ORIGIN=1`.
 
+## AI Assist
+
+When AI is enabled, the selection, page-summary, and form actions all return the same calm, predictable summary shape, rendered in a single on-page panel:
+
+- **Key points** — at most 3, most important first
+- **Do this next** — exactly one concrete next action, or an explicit "nothing required"
+- **Watch out** — only genuinely important cautions, plus a literal restatement of any idiom, sarcasm, or ambiguous wording (`'phrase' = plain meaning`)
+- **More detail** — secondary notes kept collapsed (progressive disclosure)
+- **Confidence note** — a quiet footer line saying whether the result is based only on visible text or includes interpretation
+
+The model is instructed to summarize the actual content rather than the page's structure or controls, to avoid inventing unsupported content, and to return schema-compliant JSON only. Each action shows a loading indicator and a retry control.
+
 ## Site Audit
 
 Launch an isolated browser with remote debugging:
