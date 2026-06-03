@@ -917,10 +917,17 @@
     // articles.
     if (longParagraphs < 3 || longParagraphs < headings || proseRatio < 0.4) return 0;
     if (linkHeavy || paragraphs < 2 || textLength < 800) return 0;
-    if (paragraphs >= 4 && textLength >= 1200) return textLength + paragraphs * 180 + headings * 90 - links * 25;
-    if (paragraphs >= 3 && textLength >= 950 && headings >= 1) return textLength + paragraphs * 150 + headings * 90 - links * 25;
-    if (paragraphs >= 2 && textLength >= 1500 && headings >= 1) return textLength + paragraphs * 120 + headings * 90 - links * 25;
-    return 0;
+    let score = 0;
+    if (paragraphs >= 4 && textLength >= 1200) score = textLength + paragraphs * 180 + headings * 90 - links * 25;
+    else if (paragraphs >= 3 && textLength >= 950 && headings >= 1) score = textLength + paragraphs * 150 + headings * 90 - links * 25;
+    else if (paragraphs >= 2 && textLength >= 1500 && headings >= 1) score = textLength + paragraphs * 120 + headings * 90 - links * 25;
+    else return 0;
+    // A candidate that cleared every gate above is article-like; keep its score
+    // positive even when the link penalty would drive it negative (large,
+    // link-rich articles such as long Wikipedia pages) so findReaderTarget,
+    // which requires score >= 1, still selects it. The penalty keeps shaping the
+    // ranking among competing positive candidates.
+    return Math.max(1, score);
   }
 
   function detectPortalProfile() {
