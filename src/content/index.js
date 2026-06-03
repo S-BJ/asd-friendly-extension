@@ -111,7 +111,6 @@
     readerChunking: false,
     aiHelperEnabled: false,
     aiGentleSuggestions: true,
-    assistPanelDefaultOpen: false,
     showActiveStateIndicator: true,
     showQuickToggle: false
   };

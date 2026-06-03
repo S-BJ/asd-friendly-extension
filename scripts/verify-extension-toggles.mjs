@@ -27,7 +27,6 @@ const baseSettings = {
   readingRuler: false,
   aiHelperEnabled: false,
   aiGentleSuggestions: true,
-  assistPanelDefaultOpen: false,
   showActiveStateIndicator: false
 };
 

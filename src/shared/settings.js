@@ -52,7 +52,6 @@ export const DEFAULT_SYNC_SETTINGS = Object.freeze({
   readerChunking: false,
   aiHelperEnabled: false,
   aiGentleSuggestions: true,
-  assistPanelDefaultOpen: false,
   showActiveStateIndicator: true,
   showQuickToggle: false
 });
@@ -96,7 +95,6 @@ const BOOLEAN_SYNC_KEYS = Object.freeze([
   "readerChunking",
   "aiHelperEnabled",
   "aiGentleSuggestions",
-  "assistPanelDefaultOpen",
   "showActiveStateIndicator",
   "showQuickToggle"
 ]);

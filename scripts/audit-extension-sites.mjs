@@ -467,7 +467,6 @@ async function injectContentRuntime(cdp, sessionId, { contentScript, contentStyl
       readingRuler: false,
       aiHelperEnabled: false,
       aiGentleSuggestions: true,
-      assistPanelDefaultOpen: false,
       showActiveStateIndicator: true
     };
     const localSettings = {
