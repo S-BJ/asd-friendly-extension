@@ -21,4 +21,3 @@ Pure modules with no DOM or Chrome-API dependency, importable by the background 
 | `i18n.js` | Locale resolution (en/ko/auto) |
 | `messages.js` | `MESSAGE_TYPES` constants for runtime message dispatch |
 | `openai-models.js` | Supported model IDs + normalization |
-| `constants.js` | Extension name/version/storage keys |
