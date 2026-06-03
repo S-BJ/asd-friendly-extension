@@ -466,6 +466,7 @@
     }
   })();
   const ASSIST_UI_HOST_ID = "asd-foundation-ai-host";
+  const IMAGE_SOFTENING_UNLOCK_BUTTON_CLASS = "asd-foundation-image-unblur";
   const CONTRAST_FIX_ATTR = "data-asd-contrast-fix";
   const BACKGROUND_IMAGE_SOFTEN_ATTR = "data-asd-background-image-softened";
   const IMAGE_SOFTENING_REVEAL_ATTR = "data-asd-image-softening-revealed";
@@ -488,7 +489,11 @@
   let imageSofteningRevealRafPending = false;
   let imageSofteningRevealPointerX = Number.NaN;
   let imageSofteningRevealPointerY = Number.NaN;
-  let imageSofteningRevealedElements = new Set();
+  let imageSofteningUnlockButton = null;
+  let imageSofteningUnlockTarget = null;
+  let imageSofteningHoveredElement = null;
+  let imageSofteningUnlockedElements = new Set();
+  const imageSofteningOriginalFilters = new WeakMap();
   let collapsedAdIdCounter = 0;
   let contrastObserver = null;
   let contrastFixTimer = null;
@@ -1439,22 +1444,28 @@
       document.removeEventListener("pointerleave", handleImageSofteningPointerLeave, true);
       window.removeEventListener("scroll", scheduleImageSofteningRevealUpdate, true);
       window.removeEventListener("resize", scheduleImageSofteningRevealUpdate, true);
-      window.removeEventListener("blur", clearImageSofteningReveal);
+      window.removeEventListener("blur", handleImageSofteningWindowBlur);
       imageSofteningRevealPointerX = Number.NaN;
       imageSofteningRevealPointerY = Number.NaN;
-      clearImageSofteningReveal();
+      clearHoveredImageSofteningElement();
+      hideImageSofteningUnlockButton();
+      removeImageSofteningUnlockButton();
+      clearUnlockedImageSofteningElements();
       return;
     }
 
+    restoreUnlockedImageSofteningElements();
+    ensureImageSofteningUnlockButton();
     document.addEventListener("pointermove", handleImageSofteningPointerMove, { capture: true, passive: true });
     document.addEventListener("pointerleave", handleImageSofteningPointerLeave, { capture: true, passive: true });
     window.addEventListener("scroll", scheduleImageSofteningRevealUpdate, { capture: true, passive: true });
     window.addEventListener("resize", scheduleImageSofteningRevealUpdate, { capture: true, passive: true });
-    window.addEventListener("blur", clearImageSofteningReveal);
+    window.addEventListener("blur", handleImageSofteningWindowBlur);
   }
 
   function handleImageSofteningPointerMove(event) {
     if (!imageSofteningRevealEnabled) return;
+    if (event.target instanceof Element && event.target.closest(`.${IMAGE_SOFTENING_UNLOCK_BUTTON_CLASS}`)) return;
     imageSofteningRevealPointerX = event.clientX;
     imageSofteningRevealPointerY = event.clientY;
     scheduleImageSofteningRevealUpdate();
@@ -1464,7 +1475,13 @@
     if (event.relatedTarget) return;
     imageSofteningRevealPointerX = Number.NaN;
     imageSofteningRevealPointerY = Number.NaN;
-    clearImageSofteningReveal();
+    clearHoveredImageSofteningElement();
+    hideImageSofteningUnlockButton();
+  }
+
+  function handleImageSofteningWindowBlur() {
+    clearHoveredImageSofteningElement();
+    hideImageSofteningUnlockButton();
   }
 
   function scheduleImageSofteningRevealUpdate() {
@@ -1481,33 +1498,39 @@
       !Number.isFinite(imageSofteningRevealPointerX) ||
       !Number.isFinite(imageSofteningRevealPointerY)
     ) {
-      clearImageSofteningReveal();
+      clearHoveredImageSofteningElement();
+      hideImageSofteningUnlockButton();
       return;
     }
 
-    revealImageSofteningCandidates(
-      findImageSofteningRevealCandidates(imageSofteningRevealPointerX, imageSofteningRevealPointerY)
-    );
+    const target = findImageSofteningUnlockTarget(imageSofteningRevealPointerX, imageSofteningRevealPointerY);
+    if (!target) {
+      clearHoveredImageSofteningElement();
+      hideImageSofteningUnlockButton();
+      return;
+    }
+
+    revealHoveredImageSofteningElement(target);
+    showImageSofteningUnlockButton(target);
   }
 
-  function findImageSofteningRevealCandidates(clientX, clientY) {
+  function findImageSofteningUnlockTarget(clientX, clientY) {
     const elementsAtPoint =
       typeof document.elementsFromPoint === "function" ? document.elementsFromPoint(clientX, clientY) : [];
-    const candidates = new Set();
 
     for (const element of elementsAtPoint) {
       if (!(element instanceof Element) || isExtensionUiElement(element)) continue;
 
       const media = findSoftenedMediaForReveal(element, clientX, clientY);
-      if (media) candidates.add(media);
+      if (isImageSofteningRevealTarget(media)) return media;
 
       const background = element.hasAttribute(BACKGROUND_IMAGE_SOFTEN_ATTR)
         ? element
         : element.closest?.(`[${BACKGROUND_IMAGE_SOFTEN_ATTR}]`);
-      if (background instanceof Element && isVisibleElement(background)) candidates.add(background);
+      if (isImageSofteningRevealTarget(background)) return background;
     }
 
-    return candidates;
+    return findVisibleSoftenedElementAtPoint(clientX, clientY);
   }
 
   function findSoftenedMediaForReveal(element, clientX, clientY) {
@@ -1522,28 +1545,179 @@
       : null;
   }
 
+  function findVisibleSoftenedElementAtPoint(clientX, clientY) {
+    let bestMatch = null;
+    let bestArea = Number.POSITIVE_INFINITY;
+
+    document.querySelectorAll(`${SOFTENED_MEDIA_SELECTOR}, [${BACKGROUND_IMAGE_SOFTEN_ATTR}]`).forEach((element) => {
+      if (!isImageSofteningRevealTarget(element) || !isPointInsideElement(element, clientX, clientY)) return;
+
+      const rect = element.getBoundingClientRect();
+      const area = rect.width * rect.height;
+      if (area < bestArea) {
+        bestArea = area;
+        bestMatch = element;
+      }
+    });
+
+    return bestMatch;
+  }
+
   function isPointInsideElement(element, clientX, clientY) {
     const rect = element.getBoundingClientRect();
     return clientX >= rect.left && clientX <= rect.right && clientY >= rect.top && clientY <= rect.bottom;
   }
 
-  function revealImageSofteningCandidates(nextElements) {
-    for (const element of imageSofteningRevealedElements) {
-      if (!nextElements.has(element)) element.removeAttribute(IMAGE_SOFTENING_REVEAL_ATTR);
-    }
-
-    for (const element of nextElements) {
-      element.setAttribute(IMAGE_SOFTENING_REVEAL_ATTR, "1");
-    }
-
-    imageSofteningRevealedElements = nextElements;
+  function isImageSofteningRevealTarget(element) {
+    return element instanceof Element && isVisibleElement(element);
   }
 
-  function clearImageSofteningReveal() {
-    for (const element of imageSofteningRevealedElements) {
-      element.removeAttribute(IMAGE_SOFTENING_REVEAL_ATTR);
+  function ensureImageSofteningUnlockButton() {
+    if (imageSofteningUnlockButton || !document.documentElement) return;
+
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = IMAGE_SOFTENING_UNLOCK_BUTTON_CLASS;
+    button.textContent = resolveLocale(syncSettings.uiLanguage) === "ko" ? "블러 해제" : "Unblur";
+    button.setAttribute(
+      "aria-label",
+      resolveLocale(syncSettings.uiLanguage) === "ko"
+        ? "이 이미지는 새로고침 전까지 블러를 해제합니다"
+        : "Unblur this image until the page is refreshed"
+    );
+    Object.assign(button.style, {
+      position: "fixed",
+      left: "0",
+      top: "0",
+      zIndex: "2147483645",
+      display: "none",
+      padding: "8px 11px",
+      border: "1px solid rgba(31, 36, 40, 0.24)",
+      borderRadius: "7px",
+      background: "rgba(255, 253, 248, 0.96)",
+      color: "#1f2428",
+      boxShadow: "0 8px 24px rgba(0, 0, 0, 0.18)",
+      font: "600 13px/1.2 system-ui, sans-serif",
+      cursor: "pointer",
+      pointerEvents: "auto"
+    });
+    button.addEventListener("click", handleImageSofteningUnlockClick);
+
+    document.documentElement.append(button);
+    imageSofteningUnlockButton = button;
+  }
+
+  function showImageSofteningUnlockButton(target) {
+    ensureImageSofteningUnlockButton();
+    if (!imageSofteningUnlockButton) return;
+
+    imageSofteningUnlockTarget = target;
+    const targetRect = target.getBoundingClientRect();
+    const buttonRect = imageSofteningUnlockButton.getBoundingClientRect();
+    const maxLeft = Math.max(8, window.innerWidth - Math.max(buttonRect.width, 96) - 8);
+    const maxTop = Math.max(8, window.innerHeight - Math.max(buttonRect.height, 36) - 8);
+    const left = clampNumber(targetRect.left + 8, 8, maxLeft, 8);
+    const top = clampNumber(targetRect.top + 8, 8, maxTop, 8);
+
+    imageSofteningUnlockButton.style.transform = `translate(${Math.round(left)}px, ${Math.round(top)}px)`;
+    imageSofteningUnlockButton.style.display = "block";
+  }
+
+  function hideImageSofteningUnlockButton() {
+    imageSofteningUnlockTarget = null;
+    if (imageSofteningUnlockButton) imageSofteningUnlockButton.style.display = "none";
+  }
+
+  function removeImageSofteningUnlockButton() {
+    imageSofteningUnlockButton?.removeEventListener("click", handleImageSofteningUnlockClick);
+    imageSofteningUnlockButton?.remove();
+    imageSofteningUnlockButton = null;
+  }
+
+  function handleImageSofteningUnlockClick(event) {
+    event.preventDefault();
+    event.stopPropagation();
+
+    if (!imageSofteningUnlockTarget) return;
+    unlockImageSofteningElement(imageSofteningUnlockTarget);
+    imageSofteningHoveredElement = null;
+    hideImageSofteningUnlockButton();
+  }
+
+  function revealHoveredImageSofteningElement(element) {
+    if (imageSofteningHoveredElement === element) return;
+    clearHoveredImageSofteningElement();
+    if (imageSofteningUnlockedElements.has(element)) return;
+
+    applyImageSofteningReveal(element);
+    imageSofteningHoveredElement = element;
+  }
+
+  function clearHoveredImageSofteningElement() {
+    const element = imageSofteningHoveredElement;
+    imageSofteningHoveredElement = null;
+    if (!(element instanceof Element) || imageSofteningUnlockedElements.has(element)) return;
+
+    element.removeAttribute(IMAGE_SOFTENING_REVEAL_ATTR);
+    if (element.matches?.(SOFTENED_MEDIA_SELECTOR)) restoreImageSofteningOriginalFilter(element);
+  }
+
+  function restoreUnlockedImageSofteningElements() {
+    for (const element of imageSofteningUnlockedElements) {
+      if (element.isConnected) {
+        unlockImageSofteningElement(element);
+      } else {
+        imageSofteningUnlockedElements.delete(element);
+      }
     }
-    imageSofteningRevealedElements = new Set();
+  }
+
+  function unlockImageSofteningElement(element) {
+    if (!(element instanceof Element)) return;
+
+    applyImageSofteningReveal(element);
+    imageSofteningUnlockedElements.add(element);
+  }
+
+  function applyImageSofteningReveal(element) {
+    element.setAttribute(IMAGE_SOFTENING_REVEAL_ATTR, "1");
+    if (element.matches(SOFTENED_MEDIA_SELECTOR)) {
+      if (!imageSofteningOriginalFilters.has(element)) {
+        imageSofteningOriginalFilters.set(element, {
+          value: element.style.getPropertyValue("filter"),
+          priority: element.style.getPropertyPriority("filter")
+        });
+      }
+      element.style.setProperty("filter", getUnlockedImageSofteningFilter(), "important");
+    }
+  }
+
+  function getUnlockedImageSofteningFilter() {
+    return root.hasAttribute("data-asd-reduce-contrast")
+      ? "contrast(0.9) saturate(0.92) brightness(0.98)"
+      : "none";
+  }
+
+  function clearUnlockedImageSofteningElements() {
+    for (const element of imageSofteningUnlockedElements) {
+      element.removeAttribute(IMAGE_SOFTENING_REVEAL_ATTR);
+      if (element.matches?.(SOFTENED_MEDIA_SELECTOR)) restoreImageSofteningOriginalFilter(element);
+    }
+    imageSofteningUnlockedElements = new Set();
+  }
+
+  function restoreImageSofteningOriginalFilter(element) {
+    const original = imageSofteningOriginalFilters.get(element);
+    if (!original) {
+      element.style.removeProperty("filter");
+      return;
+    }
+
+    if (original.value) {
+      element.style.setProperty("filter", original.value, original.priority);
+    } else {
+      element.style.removeProperty("filter");
+    }
   }
 
   function syncBackgroundImageSoftening(shouldEnable) {
@@ -3324,6 +3498,7 @@
     return Boolean(
       element.id === ASSIST_UI_HOST_ID ||
         element.closest(`#${ASSIST_UI_HOST_ID}`) ||
+        element.closest(`.${IMAGE_SOFTENING_UNLOCK_BUTTON_CLASS}`) ||
         element.closest(".asd-foundation-indicator") ||
         element.closest(".asd-foundation-ruler")
     );

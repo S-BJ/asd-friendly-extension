@@ -69,13 +69,16 @@ test("image softening is exposed with matching runtime contract", async () => {
   assert.match(contentStyles, /html\[data-asd-foundation\]\[data-asd-image-softening\][\s\S]*img/);
   assert.match(contentScript, /data-asd-background-image-softened/);
   assert.match(contentScript, /data-asd-image-softening-revealed/);
+  assert.match(contentScript, /asd-foundation-image-unblur/);
+  assert.match(contentScript, /handleImageSofteningUnlockClick/);
+  assert.match(contentScript, /style\.setProperty\("filter"/);
   assert.match(contentScript, /elementsFromPoint/);
   assert.match(contentStyles, /data-asd-background-image-softened/);
   assert.match(contentStyles, /data-asd-image-softening-revealed/);
   assert.match(contentStyles, /--asd-background-softening-image/);
   assert.match(contentStyles, /iframe\[src\*="youtube\.com\/embed"\]/);
-  assert.match(contentStyles, /video:hover/);
-  assert.match(contentStyles, /img:hover/);
+  assert.doesNotMatch(contentStyles, /video:hover/);
+  assert.doesNotMatch(contentStyles, /img:hover/);
   for (const oldKey of ["shield" + "Popups", "allow" + "Popups", "face" + "SofteningEnabled"]) {
     assert.doesNotMatch(html, new RegExp(oldKey));
   }

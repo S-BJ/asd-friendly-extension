@@ -205,59 +205,13 @@ html[data-asd-foundation][data-asd-image-softening][data-asd-reduce-contrast] :i
 }
 
 html[data-asd-foundation][data-asd-image-softening]:not([data-asd-reduce-contrast]) :is(
-  [data-asd-image-softening-revealed],
-  img:hover,
-  img:focus-visible,
-  a:hover img,
-  a:focus-visible img,
-  button:hover img,
-  button:focus-visible img,
-  picture:hover > img,
-  video:hover,
-  video:focus-visible,
-  iframe[src*="youtube.com/embed"]:hover,
-  iframe[src*="youtube.com/embed"]:focus-visible,
-  iframe[src*="youtube-nocookie.com/embed"]:hover,
-  iframe[src*="youtube-nocookie.com/embed"]:focus-visible,
-  iframe[src*="player.vimeo.com"]:hover,
-  iframe[src*="player.vimeo.com"]:focus-visible,
-  iframe[src*="dailymotion.com/embed"]:hover,
-  iframe[src*="dailymotion.com/embed"]:focus-visible,
-  iframe[src*="tv.naver.com/embed"]:hover,
-  iframe[src*="tv.naver.com/embed"]:focus-visible,
-  iframe[src*="tv.kakao.com/embed"]:hover,
-  iframe[src*="tv.kakao.com/embed"]:focus-visible,
-  iframe[src*="streamable.com"]:hover,
-  iframe[src*="streamable.com"]:focus-visible
+  [data-asd-image-softening-revealed]
 ) {
   filter: none !important;
 }
 
 html[data-asd-foundation][data-asd-image-softening][data-asd-reduce-contrast] :is(
-  [data-asd-image-softening-revealed],
-  img:hover,
-  img:focus-visible,
-  a:hover img,
-  a:focus-visible img,
-  button:hover img,
-  button:focus-visible img,
-  picture:hover > img,
-  video:hover,
-  video:focus-visible,
-  iframe[src*="youtube.com/embed"]:hover,
-  iframe[src*="youtube.com/embed"]:focus-visible,
-  iframe[src*="youtube-nocookie.com/embed"]:hover,
-  iframe[src*="youtube-nocookie.com/embed"]:focus-visible,
-  iframe[src*="player.vimeo.com"]:hover,
-  iframe[src*="player.vimeo.com"]:focus-visible,
-  iframe[src*="dailymotion.com/embed"]:hover,
-  iframe[src*="dailymotion.com/embed"]:focus-visible,
-  iframe[src*="tv.naver.com/embed"]:hover,
-  iframe[src*="tv.naver.com/embed"]:focus-visible,
-  iframe[src*="tv.kakao.com/embed"]:hover,
-  iframe[src*="tv.kakao.com/embed"]:focus-visible,
-  iframe[src*="streamable.com"]:hover,
-  iframe[src*="streamable.com"]:focus-visible
+  [data-asd-image-softening-revealed]
 ) {
   filter: contrast(0.9) saturate(0.92) brightness(0.98) !important;
 }
@@ -293,18 +247,8 @@ html[data-asd-foundation][data-asd-image-softening][data-asd-reduce-contrast] [d
   filter: blur(var(--asd-image-softening-blur, 8px)) contrast(0.9) saturate(0.92) brightness(0.98) !important;
 }
 
-html[data-asd-foundation][data-asd-image-softening]:not([data-asd-reduce-contrast]) [data-asd-background-image-softened]:is(:hover, :focus-within)::before {
-  filter: none !important;
-  transform: none !important;
-}
-
 html[data-asd-foundation][data-asd-image-softening]:not([data-asd-reduce-contrast]) [data-asd-background-image-softened][data-asd-image-softening-revealed]::before {
   filter: none !important;
-  transform: none !important;
-}
-
-html[data-asd-foundation][data-asd-image-softening][data-asd-reduce-contrast] [data-asd-background-image-softened]:is(:hover, :focus-within)::before {
-  filter: contrast(0.9) saturate(0.92) brightness(0.98) !important;
   transform: none !important;
 }
 
