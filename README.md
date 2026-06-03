@@ -24,7 +24,7 @@ Runtime code lives under:
 - Toggleable ad network blocking plus recoverable likely-ad/distraction collapsing
 - Autoplay muting
 - Optional image softening with hover/focus reveal
-- Reader mode toggle
+- Reader mode toggle (engages only on detected long-form article pages, not homepages/feeds/index grids)
 - Community-site assist toggle for Reddit, Clien, DCInside, FMKorea, Inven, Ruliweb, and similar dense pages
 - Reading ruler toggle
 - ADHD focus & reading supports: focus spotlight (line/paragraph place-keeping), reading progress with estimated time left, adjustable letter spacing, word spacing, and reading width, and long-text chunking (all opt-in, sensitive-page aware)
