@@ -27,25 +27,25 @@
   "commands": {
     "run-ai-analysis": {
       "suggested_key": {
-        "default": "Alt+1"
+        "default": "Ctrl+Shift+F"
       },
       "description": "Run AI analysis on the current tab"
     },
     "toggle-extension": {
       "suggested_key": {
-        "default": "Alt+2"
+        "default": "Ctrl+Shift+L"
       },
       "description": "Turn the extension on or off"
     },
     "toggle-spotlight": {
       "suggested_key": {
-        "default": "Alt+3"
+        "default": "Ctrl+Shift+X"
       },
       "description": "Toggle the focus spotlight"
     },
     "toggle-reader": {
       "suggested_key": {
-        "default": "Alt+4"
+        "default": "Ctrl+Shift+Y"
       },
       "description": "Toggle reader mode"
     }
