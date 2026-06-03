@@ -85,7 +85,7 @@ async function requestSelectionDirect(apiKey, model, context) {
     name: "selection_explanation",
     schema: EXPLANATION_SCHEMA,
     model: openAIModel,
-    maxOutputTokens: 500,
+    maxOutputTokens: 700,
     instructions: buildSelectionInstructions(normalizedContext),
     contentText: buildSelectionContentText(normalizedContext)
   });

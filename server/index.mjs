@@ -190,7 +190,7 @@ async function explainSelection(context, apiKey, model = OPENAI_MODEL) {
     model,
     name: "selection_explanation",
     schema: EXPLANATION_SCHEMA,
-    maxOutputTokens: 500,
+    maxOutputTokens: 700,
     instructions: buildSelectionInstructions(context),
     contentText: buildSelectionContentText(context)
   });

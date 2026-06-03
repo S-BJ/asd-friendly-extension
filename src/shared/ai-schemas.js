@@ -1,111 +1,42 @@
-export const EXPLANATION_SCHEMA = Object.freeze({
+// One ASD/ADHD-tuned summary shape, shared by the selection, page, and form
+// actions so the on-page panel always renders the same calm, predictable layout:
+//   - bottom_line: the single most important takeaway, first (BLUF)
+//   - key_points: at most 3, ordered most-important-first
+//   - do_this_next: one concrete action (or an explicit "nothing required")
+//   - watch_out: real warnings + the literal meaning of figurative/ambiguous wording
+//   - more_detail: secondary notes, shown collapsed (progressive disclosure)
+//   - confidence_note: short uncertainty marker
+const SUMMARY_SCHEMA = Object.freeze({
   type: "object",
   additionalProperties: false,
   properties: {
-    plain_meaning: { type: "string" },
-    likely_intent: { type: "string" },
-    what_to_do_next: { type: "string" },
-    safer_rewrite: { type: "string" },
-    confidence_note: { type: "string" },
-    confusing_parts: {
-      type: "array",
-      items: { type: "string" }
-    }
-  },
-  required: [
-    "plain_meaning",
-    "likely_intent",
-    "what_to_do_next",
-    "safer_rewrite",
-    "confidence_note",
-    "confusing_parts"
-  ]
-});
-
-export const PAGE_SUMMARY_SCHEMA = Object.freeze({
-  type: "object",
-  additionalProperties: false,
-  properties: {
-    page_purpose: { type: "string" },
+    bottom_line: { type: "string" },
     key_points: {
       type: "array",
       items: { type: "string" }
     },
-    important_areas: {
+    do_this_next: { type: "string" },
+    watch_out: {
       type: "array",
       items: { type: "string" }
     },
-    visible_main_actions: {
-      type: "array",
-      items: { type: "string" }
-    },
-    likely_next_step: { type: "string" },
-    optional_or_secondary_areas: {
-      type: "array",
-      items: { type: "string" }
-    },
-    warnings_or_confusing_points: {
-      type: "array",
-      items: { type: "string" }
-    },
-    unknowns: {
+    more_detail: {
       type: "array",
       items: { type: "string" }
     },
     confidence_note: { type: "string" }
   },
   required: [
-    "page_purpose",
+    "bottom_line",
     "key_points",
-    "important_areas",
-    "visible_main_actions",
-    "likely_next_step",
-    "optional_or_secondary_areas",
-    "warnings_or_confusing_points",
-    "unknowns",
+    "do_this_next",
+    "watch_out",
+    "more_detail",
     "confidence_note"
   ]
 });
 
-export const FORM_EXPLANATION_SCHEMA = Object.freeze({
-  type: "object",
-  additionalProperties: false,
-  properties: {
-    form_purpose: { type: "string" },
-    required_fields: {
-      type: "array",
-      items: { type: "string" }
-    },
-    optional_fields: {
-      type: "array",
-      items: { type: "string" }
-    },
-    important_warnings: {
-      type: "array",
-      items: { type: "string" }
-    },
-    time_sensitive_warnings: {
-      type: "array",
-      items: { type: "string" }
-    },
-    review_before_submit: {
-      type: "array",
-      items: { type: "string" }
-    },
-    suggested_steps: {
-      type: "array",
-      items: { type: "string" }
-    },
-    confidence_note: { type: "string" }
-  },
-  required: [
-    "form_purpose",
-    "required_fields",
-    "optional_fields",
-    "important_warnings",
-    "time_sensitive_warnings",
-    "review_before_submit",
-    "suggested_steps",
-    "confidence_note"
-  ]
-});
+export { SUMMARY_SCHEMA };
+export const EXPLANATION_SCHEMA = SUMMARY_SCHEMA;
+export const PAGE_SUMMARY_SCHEMA = SUMMARY_SCHEMA;
+export const FORM_EXPLANATION_SCHEMA = SUMMARY_SCHEMA;

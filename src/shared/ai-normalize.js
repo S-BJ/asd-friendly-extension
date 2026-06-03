@@ -92,6 +92,7 @@ export function normalizePageContext(context) {
     pageUrl: normalizeText(value.pageUrl, 400),
     pageProfile: normalizePageProfile(value.pageProfile),
     communitySubtype: normalizeCommunitySubtype(value.communitySubtype),
+    mainText: normalizeText(value.mainText, 6000),
     visibleHeadings: normalizeStringArray(value.visibleHeadings, 10, 120),
     keyActions: normalizeStringArray(value.keyActions, 12, 120),
     importantTextSnippets: normalizeStringArray(value.importantTextSnippets, 10, 280),
@@ -121,40 +122,19 @@ export function normalizeFormContext(context) {
   };
 }
 
-export function shapeSelectionPayload(parsed) {
+// Selection, page, and form all return the same ASD/ADHD summary shape
+// (see ai-schemas.js). One shaper, three names kept for existing import sites.
+export function shapeSummaryPayload(parsed) {
   return {
-    plainMeaning: normalizeText(parsed.plain_meaning, 500),
-    likelyIntent: normalizeText(parsed.likely_intent, 500),
-    whatToDoNext: normalizeText(parsed.what_to_do_next, 500),
-    saferRewrite: normalizeText(parsed.safer_rewrite, 500),
-    confidenceNote: normalizeText(parsed.confidence_note, 220),
-    confusingParts: normalizeStringArray(parsed.confusing_parts, 5, 240)
-  };
-}
-
-export function shapePageSummaryPayload(parsed) {
-  return {
-    pagePurpose: normalizeText(parsed.page_purpose, 320),
-    keyPoints: normalizeStringArray(parsed.key_points, 5, 140),
-    importantAreas: normalizeStringArray(parsed.important_areas, 5, 160),
-    visibleMainActions: normalizeStringArray(parsed.visible_main_actions, 6, 160),
-    likelyNextStep: normalizeText(parsed.likely_next_step, 220),
-    optionalOrSecondaryAreas: normalizeStringArray(parsed.optional_or_secondary_areas, 5, 160),
-    warningsOrConfusingPoints: normalizeStringArray(parsed.warnings_or_confusing_points, 6, 180),
-    unknowns: normalizeStringArray(parsed.unknowns, 5, 180),
+    bottomLine: normalizeText(parsed.bottom_line, 240),
+    keyPoints: normalizeStringArray(parsed.key_points, 3, 150),
+    doThisNext: normalizeText(parsed.do_this_next, 240),
+    watchOut: normalizeStringArray(parsed.watch_out, 5, 220),
+    moreDetail: normalizeStringArray(parsed.more_detail, 8, 220),
     confidenceNote: normalizeText(parsed.confidence_note, 220)
   };
 }
 
-export function shapeFormPayload(parsed) {
-  return {
-    formPurpose: normalizeText(parsed.form_purpose, 320),
-    requiredFields: normalizeStringArray(parsed.required_fields, 10, 120),
-    optionalFields: normalizeStringArray(parsed.optional_fields, 10, 120),
-    importantWarnings: normalizeStringArray(parsed.important_warnings, 8, 180),
-    timeSensitiveWarnings: normalizeStringArray(parsed.time_sensitive_warnings, 6, 180),
-    reviewBeforeSubmit: normalizeStringArray(parsed.review_before_submit, 10, 180),
-    suggestedSteps: normalizeStringArray(parsed.suggested_steps, 8, 160),
-    confidenceNote: normalizeText(parsed.confidence_note, 220)
-  };
-}
+export const shapeSelectionPayload = shapeSummaryPayload;
+export const shapePageSummaryPayload = shapeSummaryPayload;
+export const shapeFormPayload = shapeSummaryPayload;

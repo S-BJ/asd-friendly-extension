@@ -155,11 +155,13 @@ test("build excludes test-only runtime helpers from packaged extension", async (
   assert.match(buildScript, /background\/site-overrides\.js/);
 });
 
-test("page AI schema includes action and uncertainty fields", async () => {
+test("AI summary schema includes a bottom line, action, and uncertainty fields", async () => {
   const schemas = await readFile(new URL("../src/shared/ai-schemas.js", import.meta.url), "utf8");
 
-  assert.match(schemas, /visible_main_actions/);
-  assert.match(schemas, /unknowns/);
+  assert.match(schemas, /bottom_line/);
+  assert.match(schemas, /do_this_next/);
+  assert.match(schemas, /watch_out/);
+  assert.match(schemas, /confidence_note/);
 });
 
 test("AI client and server share the same schema source", async () => {

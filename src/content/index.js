@@ -10,7 +10,10 @@
     openAssistPanel: "OPEN_ASSIST_PANEL",
     closeAssistPanel: "CLOSE_ASSIST_PANEL",
     showAiResult: "SHOW_AI_RESULT",
-    showAiError: "SHOW_AI_ERROR"
+    showAiError: "SHOW_AI_ERROR",
+    explainSelection: "EXPLAIN_SELECTION",
+    explainPage: "EXPLAIN_PAGE",
+    explainForm: "EXPLAIN_FORM"
   };
 
   const PAGE_PROFILES = {
@@ -166,66 +169,36 @@
       loading: "Working",
       issue: "Issue",
       close: "Close",
+      retry: "Try again",
       confidenceNote: "Confidence note",
       selectionTitle: "Selected text help",
       pageTitle: "Page guide",
       formTitle: "Form guide",
       loadingFallback: "Preparing the AI helper.",
       noItems: "Nothing specific was found.",
-      selectedText: "Selected text",
-      directMeaning: "Direct meaning",
-      likelyIntent: "Likely intent",
-      whatToDoNext: "What to do next",
-      calmerRewrite: "Calmer rewrite",
-      confusingParts: "Confusing parts",
-      pagePurpose: "Page purpose",
+      bottomLine: "Bottom line",
       keyPoints: "Key points",
-      importantAreas: "Important areas",
-      visibleMainActions: "Visible main actions",
-      likelyNextStep: "Likely next step",
-      optionalAreas: "Optional or secondary areas",
-      warningsOrConfusingPoints: "Warnings or confusing points",
-      unknowns: "What is not clear yet",
-      formPurpose: "Form purpose",
-      requiredFields: "Required fields",
-      optionalFields: "Optional fields",
-      importantWarnings: "Important warnings",
-      timeSensitiveWarnings: "Time-sensitive warnings",
-      reviewBeforeSubmit: "Review before submit",
-      suggestedSteps: "Suggested steps"
+      doThisNext: "Do this next",
+      watchOut: "Watch out",
+      moreDetail: "More detail"
     },
     ko: {
       helper: "AI 도움",
       loading: "처리 중",
       issue: "문제",
       close: "닫기",
+      retry: "다시 시도",
       confidenceNote: "확신도 메모",
       selectionTitle: "선택한 텍스트 도움",
       pageTitle: "페이지 가이드",
       formTitle: "폼 가이드",
       loadingFallback: "AI 도움을 준비하고 있어요.",
       noItems: "특별히 찾은 내용이 없어요.",
-      selectedText: "선택한 텍스트",
-      directMeaning: "직접적인 의미",
-      likelyIntent: "의도 추정",
-      whatToDoNext: "다음에 할 일",
-      calmerRewrite: "더 차분한 다시쓰기",
-      confusingParts: "헷갈릴 수 있는 부분",
-      pagePurpose: "이 페이지의 목적",
+      bottomLine: "한 줄 결론",
       keyPoints: "핵심 요점",
-      importantAreas: "중요한 영역",
-      visibleMainActions: "보이는 주요 동작",
-      likelyNextStep: "가능성이 높은 다음 단계",
-      optionalAreas: "선택적이거나 부수적인 영역",
-      warningsOrConfusingPoints: "주의하거나 헷갈릴 수 있는 점",
-      unknowns: "아직 확실하지 않은 점",
-      formPurpose: "이 폼의 목적",
-      requiredFields: "필수로 보이는 항목",
-      optionalFields: "선택 항목",
-      importantWarnings: "중요한 경고",
-      timeSensitiveWarnings: "시간에 민감한 경고",
-      reviewBeforeSubmit: "제출 전 다시 볼 것",
-      suggestedSteps: "권장 순서"
+      doThisNext: "지금 할 일",
+      watchOut: "주의 · 헷갈리는 표현",
+      moreDetail: "더 보기"
     }
   };
 
@@ -322,31 +295,153 @@
       padding: 14px;
     }
 
-    .message,
-    .section p,
-    .section li,
-    .section {
+    .message {
       display: grid;
       gap: 6px;
-      padding: 12px;
+      padding: 14px;
       border: 1px solid var(--asd-ui-border, rgba(63, 111, 143, 0.24));
-      border-radius: 8px;
+      border-radius: 10px;
       background: var(--asd-ui-card, rgba(255, 255, 255, 0.82));
+      line-height: 1.6;
     }
 
-    .section h3 {
+    /* Only the card and the message are boxes. Text, labels, and list items
+       inside stay plain — no box-in-box — so the panel reads calm. */
+    .card {
+      display: grid;
+      gap: 10px;
+      padding: 16px;
+      border: 1px solid var(--asd-ui-border, rgba(63, 111, 143, 0.24));
+      border-radius: 12px;
+      background: var(--asd-ui-card, rgba(255, 255, 255, 0.9));
+    }
+
+    .card p {
       margin: 0;
-      font-size: 12px;
-      line-height: 1.35;
-      font-weight: 700;
+      line-height: 1.6;
       color: var(--asd-ui-fg, #1f2428);
     }
 
-    .section ul {
+    .card .lead {
+      font-size: 16px;
+      font-weight: 700;
+      line-height: 1.5;
+    }
+
+    .card .label {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--asd-ui-muted, #59656b);
+    }
+
+    .card ul {
       margin: 0;
-      padding-left: 18px;
+      padding-left: 20px;
       display: grid;
-      gap: 6px;
+      gap: 8px;
+    }
+
+    .card li {
+      line-height: 1.6;
+      color: var(--asd-ui-fg, #1f2428);
+    }
+
+    .card.action {
+      background: var(--asd-ui-accent-soft, rgba(63, 111, 143, 0.12));
+      border-color: var(--asd-ui-accent, #3f6f8f);
+    }
+
+    .card.action .label { color: var(--asd-ui-accent, #3f6f8f); }
+    .card.action p { font-weight: 600; }
+
+    .card.caution {
+      border-style: dashed;
+    }
+
+    .confidence {
+      margin: 0 2px;
+      font-size: 12px;
+      line-height: 1.5;
+      color: var(--asd-ui-muted, #59656b);
+    }
+
+    details.more-detail > summary {
+      list-style: none;
+      cursor: pointer;
+      padding: 6px 2px;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--asd-ui-accent, #3f6f8f);
+    }
+
+    details.more-detail > summary::-webkit-details-marker {
+      display: none;
+    }
+
+    details.more-detail > ul {
+      margin: 6px 0 0;
+      padding-left: 20px;
+      display: grid;
+      gap: 8px;
+      line-height: 1.6;
+    }
+
+    .loading {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .dots {
+      display: inline-flex;
+      gap: 4px;
+      flex: 0 0 auto;
+    }
+
+    .dots > i {
+      width: 6px;
+      height: 6px;
+      border-radius: 999px;
+      background: var(--asd-ui-accent, #3f6f8f);
+      opacity: 0.35;
+      animation: asd-dot 1s infinite ease-in-out;
+    }
+
+    .dots > i:nth-child(2) { animation-delay: 0.15s; }
+    .dots > i:nth-child(3) { animation-delay: 0.3s; }
+
+    @keyframes asd-dot {
+      0%, 80%, 100% { opacity: 0.3; transform: translateY(0); }
+      40% { opacity: 1; transform: translateY(-3px); }
+    }
+
+    .actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .retry {
+      min-height: 36px;
+      padding: 0 16px;
+      border: 1px solid var(--asd-ui-accent, #3f6f8f);
+      border-radius: 7px;
+      background: var(--asd-ui-accent, #3f6f8f);
+      color: #ffffff;
+      font: inherit;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .retry[disabled] {
+      opacity: 0.5;
+      cursor: default;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .dots > i { animation: none; opacity: 0.5; }
     }
 
     @media (max-width: 720px) {
@@ -1930,10 +2025,44 @@
       visibleHeadings: collectVisibleTexts("h1, h2, h3, [role='heading']", 10, 120),
       keyActions: collectKeyActions(),
       importantTextSnippets: collectImportantTextSnippets(),
+      mainText: collectMainText(),
       visibleCommunityItems: currentProfile === PAGE_PROFILES.community ? collectVisibleCommunityItems() : [],
       browserLanguage: navigator.language || "",
       sensitivePageKind: currentSensitivePageKind
     };
+  }
+
+  // The page summary must reflect the page's actual content, not just its
+  // headings/buttons. Gather readable body text from the main content container,
+  // skipping navigation/aside/footer chrome, capped so the prompt stays bounded.
+  function collectMainText() {
+    const container =
+      currentReaderTarget ||
+      document.querySelector("main, [role='main'], article") ||
+      document.body;
+    if (!(container instanceof Element)) return "";
+
+    const blocks = [...container.querySelectorAll("p, li, h1, h2, h3, h4, blockquote, td, dd, figcaption")]
+      .filter((element) => isVisibleElement(element))
+      .filter(
+        (element) =>
+          !element.closest(
+            "nav, header, footer, aside, [role='navigation'], [role='banner'], [role='complementary'], [role='search']"
+          )
+      )
+      .map((element) => normalizeText(element.innerText || "", 400))
+      .filter((value) => value.length >= 2);
+
+    let text = "";
+    for (const block of blocks) {
+      if (text.length + block.length + 1 > 6000) break;
+      text += text ? `\n${block}` : block;
+    }
+
+    if (text.length < 200) {
+      text = normalizeText(container.innerText || "", 6000);
+    }
+    return text;
   }
 
   function getFormContext() {
@@ -2314,16 +2443,17 @@
       ui.close.textContent = text.close;
 
       if (payload.state === "loading") {
-        ui.body.append(createMessage(payload.message || text.loadingFallback));
+        ui.body.append(createLoadingIndicator(payload.message || text.loadingFallback));
         return;
       }
 
       if (payload.state === "error") {
         ui.body.append(createMessage(payload.message || text.loadingFallback));
+        if (payload.requestType) ui.body.append(createRetryButton(payload.requestType, text));
         return;
       }
 
-      appendResultSections(ui.body, payload.requestType, payload.response || {}, text);
+      renderUnifiedSummary(ui.body, payload.response || {}, text);
     } catch (error) {
       if (isExtensionContextInvalidationError(error)) {
         handleExtensionContextInvalidation();
@@ -2476,113 +2606,86 @@
     assistUi.host.style.setProperty("--asd-ui-border", theme.border || "rgba(63, 111, 143, 0.24)");
   }
 
-  function appendResultSections(container, requestType, response, text) {
-    if (requestType === "selection") {
-      if (response.selectionText) {
-        container.append(createTextSection(text.selectedText, response.selectionText, text.noItems));
+  // At most three calm cards: (1) the essence, (2) the one action, (3) cautions.
+  // Confidence is a quiet footer line and detail is a collapsed toggle — neither
+  // is a card. This keeps the panel low-load and predictable for ASD/ADHD readers.
+  function renderUnifiedSummary(container, response, text) {
+    const result = response && typeof response === "object" ? response : {};
+    const keyPoints = Array.isArray(result.keyPoints) ? result.keyPoints : [];
+    const watchOut = Array.isArray(result.watchOut) ? result.watchOut : [];
+    const moreDetail = Array.isArray(result.moreDetail) ? result.moreDetail : [];
+
+    if (result.bottomLine || keyPoints.length > 0) {
+      const card = createCard();
+      if (result.bottomLine) {
+        const lead = document.createElement("p");
+        lead.className = "lead";
+        lead.textContent = normalizeText(result.bottomLine, 400);
+        card.append(lead);
       }
-      container.append(createTextSection(text.directMeaning, response.plainMeaning, text.noItems));
-      container.append(createTextSection(text.likelyIntent, response.likelyIntent, text.noItems));
-      container.append(createTextSection(text.whatToDoNext, response.whatToDoNext, text.noItems));
-      container.append(createTextSection(text.calmerRewrite, response.saferRewrite, text.noItems));
-      container.append(createListSection(text.confusingParts, response.confusingParts, text.noItems));
-      container.append(createTextSection(text.confidenceNote, response.confidenceNote, text.noItems));
-      return;
+      if (keyPoints.length > 0) card.append(createBulletList(keyPoints));
+      container.append(card);
     }
 
-    if (requestType === "form") {
-      container.append(createTextSection(text.formPurpose, response.formPurpose, text.noItems));
-      container.append(createListSection(text.requiredFields, response.requiredFields, text.noItems));
-      container.append(createListSection(text.optionalFields, response.optionalFields, text.noItems));
-      container.append(createListSection(text.importantWarnings, response.importantWarnings, text.noItems));
-      container.append(createListSection(text.timeSensitiveWarnings, response.timeSensitiveWarnings, text.noItems));
-      container.append(createListSection(text.reviewBeforeSubmit, response.reviewBeforeSubmit, text.noItems));
-      container.append(createListSection(text.suggestedSteps, response.suggestedSteps, text.noItems));
-      container.append(createTextSection(text.confidenceNote, response.confidenceNote, text.noItems));
-      return;
-    }
-
-    let appended = false;
-    appended = appendOptionalTextSection(container, text.pagePurpose, response.pagePurpose) || appended;
-    appended = appendOptionalListSection(container, text.keyPoints, response.keyPoints) || appended;
-    appended = appendOptionalListSection(container, text.importantAreas, response.importantAreas) || appended;
-    appended = appendOptionalListSection(container, text.visibleMainActions, response.visibleMainActions) || appended;
-    appended = appendOptionalTextSection(container, text.likelyNextStep, response.likelyNextStep) || appended;
-    appended = appendOptionalListSection(container, text.optionalAreas, response.optionalOrSecondaryAreas) || appended;
-    appended = appendOptionalListSection(container, text.warningsOrConfusingPoints, response.warningsOrConfusingPoints) || appended;
-    appended = appendOptionalListSection(container, text.unknowns, response.unknowns) || appended;
-    appended = appendOptionalTextSection(container, text.confidenceNote, response.confidenceNote) || appended;
-
-    if (response.formGuide && typeof response.formGuide === "object") {
-      appendEmbeddedFormGuide(container, response.formGuide, text);
-      appended = true;
-    }
-
-    if (!appended) {
-      container.append(createMessage(text.noItems));
-    }
-  }
-
-  function createTextSection(label, value, fallback) {
-    const section = document.createElement("section");
-    section.className = "section";
-
-    const heading = document.createElement("h3");
-    heading.textContent = label;
-
-    const paragraph = document.createElement("p");
-    paragraph.textContent = normalizeText(value || "", 1000) || fallback;
-
-    section.append(heading, paragraph);
-    return section;
-  }
-
-  function createListSection(label, items, fallback) {
-    const section = document.createElement("section");
-    section.className = "section";
-
-    const heading = document.createElement("h3");
-    heading.textContent = label;
-    section.append(heading);
-
-    if (!Array.isArray(items) || items.length === 0) {
+    if (result.doThisNext) {
+      const card = createCard("action");
+      card.append(createLabel(text.doThisNext));
       const paragraph = document.createElement("p");
-      paragraph.textContent = fallback;
-      section.append(paragraph);
-      return section;
+      paragraph.textContent = normalizeText(result.doThisNext, 400);
+      card.append(paragraph);
+      container.append(card);
     }
 
+    if (watchOut.length > 0) {
+      const card = createCard("caution");
+      card.append(createLabel(text.watchOut));
+      card.append(createBulletList(watchOut));
+      container.append(card);
+    }
+
+    if (result.confidenceNote) {
+      const note = document.createElement("p");
+      note.className = "confidence";
+      note.textContent = normalizeText(result.confidenceNote, 400);
+      container.append(note);
+    }
+
+    if (moreDetail.length > 0) container.append(createDetailsSection(text.moreDetail, moreDetail));
+
+    if (!container.childElementCount) container.append(createMessage(text.noItems));
+  }
+
+  function createCard(variant) {
+    const card = document.createElement("section");
+    card.className = variant ? `card ${variant}` : "card";
+    return card;
+  }
+
+  function createLabel(value) {
+    const label = document.createElement("p");
+    label.className = "label";
+    label.textContent = value;
+    return label;
+  }
+
+  function createBulletList(items) {
     const list = document.createElement("ul");
-    items.slice(0, 10).forEach((item) => {
+    items.slice(0, 5).forEach((item) => {
       const element = document.createElement("li");
-      element.textContent = normalizeText(item || "", 400);
+      element.textContent = normalizeText(item || "", 300);
       list.append(element);
     });
-    section.append(list);
-    return section;
+    return list;
   }
 
-  function appendOptionalTextSection(container, label, value) {
-    if (!normalizeText(value || "", 1000)) return false;
-    container.append(createTextSection(label, value, ""));
-    return true;
-  }
-
-  function appendOptionalListSection(container, label, items) {
-    if (!Array.isArray(items) || items.length === 0) return false;
-    container.append(createListSection(label, items, ""));
-    return true;
-  }
-
-  function appendEmbeddedFormGuide(container, formGuide, text) {
-    container.append(createTextSection(text.formTitle, formGuide.formPurpose, text.noItems));
-    container.append(createListSection(text.requiredFields, formGuide.requiredFields, text.noItems));
-    container.append(createListSection(text.optionalFields, formGuide.optionalFields, text.noItems));
-    container.append(createListSection(text.importantWarnings, formGuide.importantWarnings, text.noItems));
-    container.append(createListSection(text.timeSensitiveWarnings, formGuide.timeSensitiveWarnings, text.noItems));
-    container.append(createListSection(text.reviewBeforeSubmit, formGuide.reviewBeforeSubmit, text.noItems));
-    container.append(createListSection(text.suggestedSteps, formGuide.suggestedSteps, text.noItems));
-    container.append(createTextSection(text.confidenceNote, formGuide.confidenceNote, text.noItems));
+  function createDetailsSection(label, items) {
+    const details = document.createElement("details");
+    details.className = "more-detail";
+    const summary = document.createElement("summary");
+    summary.textContent = label;
+    details.append(summary);
+    details.append(createBulletList(items));
+    return details;
   }
 
   function createMessage(message) {
@@ -2590,6 +2693,59 @@
     paragraph.className = "message";
     paragraph.textContent = message;
     return paragraph;
+  }
+
+  function createLoadingIndicator(message) {
+    const wrap = document.createElement("div");
+    wrap.className = "message loading";
+
+    const label = document.createElement("span");
+    label.textContent = message;
+
+    const dots = document.createElement("span");
+    dots.className = "dots";
+    dots.setAttribute("aria-hidden", "true");
+    for (let index = 0; index < 3; index += 1) dots.append(document.createElement("i"));
+
+    wrap.append(label, dots);
+    return wrap;
+  }
+
+  function createRetryButton(requestType, text) {
+    const actions = document.createElement("div");
+    actions.className = "actions";
+
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "retry";
+    button.textContent = text.retry;
+    button.addEventListener("click", () => {
+      button.disabled = true;
+      retryAiRequest(requestType);
+    });
+
+    actions.append(button);
+    return actions;
+  }
+
+  function retryAiRequest(requestType) {
+    const typeByRequest = {
+      selection: MESSAGE_TYPES.explainSelection,
+      page: MESSAGE_TYPES.explainPage,
+      form: MESSAGE_TYPES.explainForm
+    };
+    const type = typeByRequest[requestType];
+    if (!type) return;
+
+    try {
+      chrome.runtime.sendMessage({ type }, () => {
+        void chrome.runtime.lastError;
+      });
+    } catch (error) {
+      if (isExtensionContextInvalidationError(error)) {
+        handleExtensionContextInvalidation();
+      }
+    }
   }
 
   function getPanelTitle(requestType, text) {

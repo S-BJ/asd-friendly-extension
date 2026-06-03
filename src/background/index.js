@@ -33,24 +33,9 @@ const UI_TEXT = {
     selectionFailed: "The AI helper could not explain the selected text.",
     pageFailed: "The AI helper could not explain this page.",
     formFailed: "The AI helper could not explain this form.",
-    selectionLoading: "Reading the selected text and nearby visible context.",
-    pageLoading: "Collecting visible page structure and any visible form details.",
-    formLoading: "Collecting visible form labels, warnings, and button labels.",
-    summarySelectionText: "Selected text",
-    summaryNearbyText: "Nearby visible text",
-    summaryPageIdentity: "Page title and address",
-    summaryVisibleHeadings: "Visible headings",
-    summaryVisibleActions: "Visible buttons and actions",
-    summaryVisibleSnippets: "Short visible page snippets",
-    summaryVisibleCommunityItems: "Visible posts and comments only",
-    summaryFormLabels: "Form labels and field types",
-    summaryFormButtons: "Visible button labels",
-    summaryFormWarnings: "Visible warnings and help text",
-    summaryNoTypedValues: "No typed input values",
-    noteSelection: "Based on the selected text and nearby visible text only.",
-    notePage: "Based on visible page content only, not the full page source.",
-    noteCommunity: "Based on visible community items only, not the whole thread or community.",
-    noteForm: "Based on visible form labels and warnings only. Typed values are excluded."
+    selectionLoading: "Reading the selected text.",
+    pageLoading: "Reading the page content to summarize it.",
+    formLoading: "Reading the form's labels and buttons."
   },
   ko: {
     regularPageRequired: "\uc77c\ubc18 \uc6f9 \ud398\uc774\uc9c0 \ud0ed\uc744 \uba3c\uc800 \uc5f4\uc5b4\uc8fc\uc138\uc694.",
@@ -67,24 +52,9 @@ const UI_TEXT = {
     selectionFailed: "AI \ub3c4\uc6c0\uc774 \uc120\ud0dd\ud55c \ud14d\uc2a4\ud2b8\ub97c \uc124\uba85\ud558\uc9c0 \ubabb\ud588\uc5b4\uc694.",
     pageFailed: "AI \ub3c4\uc6c0\uc774 \uc774 \ud398\uc774\uc9c0\ub97c \uc124\uba85\ud558\uc9c0 \ubabb\ud588\uc5b4\uc694.",
     formFailed: "AI \ub3c4\uc6c0\uc774 \uc774 \ud3fc\uc744 \uc124\uba85\ud558\uc9c0 \ubabb\ud588\uc5b4\uc694.",
-    selectionLoading: "\uc120\ud0dd\ud55c \ud14d\uc2a4\ud2b8\uc640 \uadfc\ucc98\uc758 \ubcf4\uc774\ub294 \ub9e5\ub77d\uc744 \uc77d\uace0 \uc788\uc5b4\uc694.",
-    pageLoading: "\ubcf4\uc774\ub294 \ud398\uc774\uc9c0 \uad6c\uc131\uacfc \ud3fc \uc815\ubcf4\uac00 \uc788\uc73c\uba74 \ud568\uaed8 \ubaa8\uc73c\uace0 \uc788\uc5b4\uc694.",
-    formLoading: "\ubcf4\uc774\ub294 \ud3fc \ub77c\ubca8, \uacbd\uace0, \ubc84\ud2bc \ubb38\uad6c\ub97c \ubaa8\uc73c\uace0 \uc788\uc5b4\uc694.",
-    summarySelectionText: "\uc120\ud0dd\ud55c \ud14d\uc2a4\ud2b8",
-    summaryNearbyText: "\uadfc\ucc98\uc758 \ubcf4\uc774\ub294 \ud14d\uc2a4\ud2b8",
-    summaryPageIdentity: "\ud398\uc774\uc9c0 \uc81c\ubaa9\uacfc \uc8fc\uc18c",
-    summaryVisibleHeadings: "\ubcf4\uc774\ub294 \uc81c\ubaa9",
-    summaryVisibleActions: "\ubcf4\uc774\ub294 \ubc84\ud2bc\uacfc \uc8fc\uc694 \ub3d9\uc791",
-    summaryVisibleSnippets: "\uc9e7\uc740 \ubcf4\uc774\ub294 \ud398\uc774\uc9c0 \ub0b4\uc6a9",
-    summaryVisibleCommunityItems: "\ubcf4\uc774\ub294 \uac8c\uc2dc\ubb3c\uacfc \ub313\uae00\ub9cc",
-    summaryFormLabels: "\ud3fc \ub77c\ubca8\uacfc \ud544\ub4dc \uc720\ud615",
-    summaryFormButtons: "\ubcf4\uc774\ub294 \ubc84\ud2bc \ubb38\uad6c",
-    summaryFormWarnings: "\ubcf4\uc774\ub294 \uacbd\uace0\uc640 \ub3c4\uc6c0 \ubb38\uad6c",
-    summaryNoTypedValues: "\uc785\ub825\ud55c \uac12\uc740 \uc81c\uc678",
-    noteSelection: "\uc120\ud0dd\ud55c \ud14d\uc2a4\ud2b8\uc640 \uadfc\ucc98\uc758 \ubcf4\uc774\ub294 \ub0b4\uc6a9\ub9cc \ubcf4\uace0 \uc124\uba85\ud574\uc694.",
-    notePage: "\ud398\uc774\uc9c0 \uc804\uccb4 \uc18c\uc2a4\uac00 \uc544\ub2c8\ub77c \ubcf4\uc774\ub294 \ub0b4\uc6a9\ub9cc \uae30\uc900\uc73c\ub85c \uc124\uba85\ud574\uc694.",
-    noteCommunity: "\ucee4\ubba4\ub2c8\ud2f0 \uc804\uccb4\uac00 \uc544\ub2c8\ub77c \ud604\uc7ac \ubcf4\uc774\ub294 \uac8c\uc2dc\ubb3c\uacfc \ub313\uae00\ub9cc \uae30\uc900\uc73c\ub85c \uc124\uba85\ud574\uc694.",
-    noteForm: "\ubcf4\uc774\ub294 \ud3fc \ub77c\ubca8\uacfc \uacbd\uace0\ub9cc \ubcf4\uace0 \uc124\uba85\ud574\uc694. \uc785\ub825\ud55c \uac12\uc740 \ubcf4\ub0b4\uc9c0 \uc54a\uc544\uc694."
+    selectionLoading: "\uc120\ud0dd\ud55c \ud14d\uc2a4\ud2b8\ub97c \uc77d\uace0 \uc788\uc5b4\uc694.",
+    pageLoading: "\ud398\uc774\uc9c0 \ub0b4\uc6a9\uc744 \uc77d\uace0 \uc694\uc57d\ud558\uace0 \uc788\uc5b4\uc694.",
+    formLoading: "\ud3fc\uc758 \ub77c\ubca8\uacfc \ubc84\ud2bc\uc744 \uc77d\uace0 \uc788\uc5b4\uc694."
   }
 };
 
@@ -454,38 +424,31 @@ async function runUnifiedPageRequestForTab({ tab, locale, pageContext, formConte
     throw new Error(t(locale, "pageContextUnavailable"));
   }
 
-  const requestSummary = buildRequestSummary(locale, "page", pageContext);
-  await openLoadingPanel(tab, "page", requestSummary, locale);
+  await openLoadingPanel(tab, "page", locale);
 
   try {
     const localSettings = await getLocalSettings();
-    const pagePromise = hasPage ? requestPageSummary(localSettings, pageContext) : Promise.resolve(null);
-    const formPromise = hasForm
-      ? requestFormExplanation(localSettings, formContext).catch(() => null)
-      : Promise.resolve(null);
-
-    const [pageResult, formResult] = await Promise.all([pagePromise, formPromise]);
-    const response = {
-      ...(pageResult?.payload || {})
-    };
-
-    if (formResult?.payload) {
-      response.formGuide = formResult.payload;
-    }
+    // "Explain this page" gives ONE clean summary of the page's actual content.
+    // Incidental forms (e.g. the site search box) are no longer merged in as a
+    // separate guide — that was noise on content pages. The dedicated
+    // "explain this form" action still covers real task forms. A page with no
+    // readable content but a real form falls back to summarizing the form.
+    const result = hasPage
+      ? await requestPageSummary(localSettings, pageContext)
+      : await requestFormExplanation(localSettings, formContext);
 
     await sendTabMessageWithRecovery(tab, {
       type: MESSAGE_TYPES.showAiResult,
       payload: {
         requestType: "page",
-        requestSummary,
-        response,
-        model: pageResult?.model || formResult?.model || ""
+        response: result.payload,
+        model: result.model
       }
     });
 
     return {
       requestType: "page",
-      model: pageResult?.model || formResult?.model || ""
+      model: result.model
     };
   } catch (error) {
     const messageText = formatAiError(error, locale, "page");
@@ -495,7 +458,6 @@ async function runUnifiedPageRequestForTab({ tab, locale, pageContext, formConte
         type: MESSAGE_TYPES.showAiError,
         payload: {
           requestType: "page",
-          requestSummary,
           message: messageText
         }
       });
@@ -510,8 +472,7 @@ async function runAiRequestForTab({ tab, locale, requestType, context, isContext
     throw new Error(t(locale, emptyContextKey));
   }
 
-  const requestSummary = buildRequestSummary(locale, requestType, context);
-  await openLoadingPanel(tab, requestType, requestSummary, locale);
+  await openLoadingPanel(tab, requestType, locale);
 
   try {
     const localSettings = await getLocalSettings();
@@ -521,7 +482,6 @@ async function runAiRequestForTab({ tab, locale, requestType, context, isContext
       type: MESSAGE_TYPES.showAiResult,
       payload: {
         requestType,
-        requestSummary,
         response: result.payload,
         model: result.model
       }
@@ -539,7 +499,6 @@ async function runAiRequestForTab({ tab, locale, requestType, context, isContext
         type: MESSAGE_TYPES.showAiError,
         payload: {
           requestType,
-          requestSummary,
           message: messageText
         }
       });
@@ -579,14 +538,13 @@ async function getOptionalTabContext(tab, contextMessageType) {
   }
 }
 
-async function openLoadingPanel(tab, requestType, requestSummary, locale) {
+async function openLoadingPanel(tab, requestType, locale) {
   try {
     await sendTabMessageWithRecovery(tab, {
       type: MESSAGE_TYPES.openAssistPanel,
       payload: {
         state: "loading",
         requestType,
-        requestSummary,
         message: t(locale, `${requestType}Loading`)
       }
     });
@@ -652,42 +610,6 @@ function hasPageContext(context) {
 
 function hasFormContext(context) {
   return Boolean(Array.isArray(context?.fields) && context.fields.length > 0);
-}
-
-function buildRequestSummary(locale, requestType, context) {
-  if (requestType === "selection") {
-    return {
-      items: [t(locale, "summarySelectionText"), t(locale, "summaryNearbyText"), t(locale, "summaryPageIdentity")],
-      note: t(locale, "noteSelection")
-    };
-  }
-
-  if (requestType === "form") {
-    return {
-      items: [
-        t(locale, "summaryFormLabels"),
-        t(locale, "summaryFormButtons"),
-        t(locale, "summaryFormWarnings"),
-        t(locale, "summaryNoTypedValues")
-      ],
-      note: t(locale, "noteForm")
-    };
-  }
-
-  const items = [
-    t(locale, "summaryVisibleHeadings"),
-    t(locale, "summaryVisibleActions"),
-    t(locale, "summaryVisibleSnippets")
-  ];
-
-  if (context?.pageProfile === "community") {
-    items.push(t(locale, "summaryVisibleCommunityItems"));
-  }
-
-  return {
-    items,
-    note: context?.pageProfile === "community" ? t(locale, "noteCommunity") : t(locale, "notePage")
-  };
 }
 
 function withPreferredResponseLanguage(context, locale) {
