@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { detectCommunityProfile } from "../src/content/classifier/detect-community.js";
 import { detectReaderProfile } from "../src/content/classifier/detect-reader.js";
+import { detectPortalProfile } from "../src/content/classifier/detect-portal.js";
 import { PAGE_PROFILES } from "../src/shared/page-profile.js";
 
 test("reader profile detects article-like content containers beyond article tags", () => {
@@ -39,6 +40,32 @@ test("reader profile avoids link-heavy index pages", () => {
   });
 
   const result = detectReaderProfile(documentLike);
+  assert.equal(result.profile, PAGE_PROFILES.generic);
+});
+
+test("portal profile flags link- and nav-dense front pages", () => {
+  const documentLike = createDocument({
+    bodyText: "Top stories sections world business sport culture opinion",
+    roots: [
+      ...Array.from({ length: 64 }, (_, index) => createElement("a", { href: "#", innerText: `Link ${index}` })),
+      ...Array.from({ length: 8 }, (_, index) => createElement("nav", { innerText: `Section ${index}` }))
+    ]
+  });
+
+  const result = detectPortalProfile(documentLike);
+  assert.equal(result.profile, PAGE_PROFILES.portal);
+});
+
+test("portal profile ignores sparse pages without dense navigation", () => {
+  const documentLike = createDocument({
+    bodyText: "A short page with little navigation.",
+    roots: [
+      ...Array.from({ length: 5 }, (_, index) => createElement("a", { href: "#", innerText: `Link ${index}` })),
+      createElement("nav", { innerText: "Section" })
+    ]
+  });
+
+  const result = detectPortalProfile(documentLike);
   assert.equal(result.profile, PAGE_PROFILES.generic);
 });
 
@@ -133,6 +160,7 @@ function matchesSingle(node, selector) {
   if (selector === "a[href]") return node.tagName === "A";
   if (selector === "[role='main']") return node.getAttribute("role") === "main";
   if (selector === "[role='article']") return node.getAttribute("role") === "article";
+  if (/^[a-z][a-z0-9]*$/.test(selector)) return node.tagName === selector.toUpperCase();
 
   const attributeContainsMatch = selector.match(/^\[(class|id)\*='([^']+)' i\]$/) ||
     selector.match(/^\[(class|id)\*="([^"]+)" i\]$/);
