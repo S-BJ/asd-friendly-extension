@@ -468,6 +468,7 @@
   const ASSIST_UI_HOST_ID = "asd-foundation-ai-host";
   const CONTRAST_FIX_ATTR = "data-asd-contrast-fix";
   const BACKGROUND_IMAGE_SOFTEN_ATTR = "data-asd-background-image-softened";
+  const IMAGE_SOFTENING_REVEAL_ATTR = "data-asd-image-softening-revealed";
   const GIF_FROZEN_ATTR = "data-asd-gif-frozen";
   let syncSettings = { ...DEFAULT_SETTINGS };
   let siteOverrides = {};
@@ -483,6 +484,11 @@
   let backgroundImageObserver = null;
   let adRemovalEnabled = false;
   let backgroundImageSofteningEnabled = false;
+  let imageSofteningRevealEnabled = false;
+  let imageSofteningRevealRafPending = false;
+  let imageSofteningRevealPointerX = Number.NaN;
+  let imageSofteningRevealPointerY = Number.NaN;
+  let imageSofteningRevealedElements = new Set();
   let collapsedAdIdCounter = 0;
   let contrastObserver = null;
   let contrastFixTimer = null;
@@ -579,6 +585,17 @@
     "[id*='media' i]",
     "[id*='hero' i]",
     "[id*='banner' i]"
+  ].join(",");
+  const SOFTENED_MEDIA_SELECTOR = [
+    "img",
+    "video",
+    "iframe[src*='youtube.com/embed']",
+    "iframe[src*='youtube-nocookie.com/embed']",
+    "iframe[src*='player.vimeo.com']",
+    "iframe[src*='dailymotion.com/embed']",
+    "iframe[src*='tv.naver.com/embed']",
+    "iframe[src*='tv.kakao.com/embed']",
+    "iframe[src*='streamable.com']"
   ].join(",");
 
   void initialize().catch(handleExtensionContextInvalidation);
@@ -761,6 +778,7 @@
     syncReaderTarget(enabled && effective.readerMode && currentProfile === PAGE_PROFILES.reader);
     syncReadShape(enabled && !sensitiveMode && (effective.readerChunking || readingWidth > 0));
     syncAdRemoval(enabled && effective.adRemovalEnabled);
+    syncImageSofteningReveal(enabled && effective.imageSofteningEnabled);
     syncBackgroundImageSoftening(enabled && effective.imageSofteningEnabled);
     syncGifFreezing(enabled && effective.reduceMotion && !sensitiveMode);
     if (IS_TOP_FRAME) {
@@ -1412,6 +1430,122 @@
     adScanPending = false;
   }
 
+  function syncImageSofteningReveal(shouldEnable) {
+    if (imageSofteningRevealEnabled === shouldEnable) return;
+    imageSofteningRevealEnabled = shouldEnable;
+
+    if (!shouldEnable) {
+      document.removeEventListener("pointermove", handleImageSofteningPointerMove, true);
+      document.removeEventListener("pointerleave", handleImageSofteningPointerLeave, true);
+      window.removeEventListener("scroll", scheduleImageSofteningRevealUpdate, true);
+      window.removeEventListener("resize", scheduleImageSofteningRevealUpdate, true);
+      window.removeEventListener("blur", clearImageSofteningReveal);
+      imageSofteningRevealPointerX = Number.NaN;
+      imageSofteningRevealPointerY = Number.NaN;
+      clearImageSofteningReveal();
+      return;
+    }
+
+    document.addEventListener("pointermove", handleImageSofteningPointerMove, { capture: true, passive: true });
+    document.addEventListener("pointerleave", handleImageSofteningPointerLeave, { capture: true, passive: true });
+    window.addEventListener("scroll", scheduleImageSofteningRevealUpdate, { capture: true, passive: true });
+    window.addEventListener("resize", scheduleImageSofteningRevealUpdate, { capture: true, passive: true });
+    window.addEventListener("blur", clearImageSofteningReveal);
+  }
+
+  function handleImageSofteningPointerMove(event) {
+    if (!imageSofteningRevealEnabled) return;
+    imageSofteningRevealPointerX = event.clientX;
+    imageSofteningRevealPointerY = event.clientY;
+    scheduleImageSofteningRevealUpdate();
+  }
+
+  function handleImageSofteningPointerLeave(event) {
+    if (event.relatedTarget) return;
+    imageSofteningRevealPointerX = Number.NaN;
+    imageSofteningRevealPointerY = Number.NaN;
+    clearImageSofteningReveal();
+  }
+
+  function scheduleImageSofteningRevealUpdate() {
+    if (!imageSofteningRevealEnabled || imageSofteningRevealRafPending) return;
+    imageSofteningRevealRafPending = true;
+    requestAnimationFrame(updateImageSofteningReveal);
+  }
+
+  function updateImageSofteningReveal() {
+    imageSofteningRevealRafPending = false;
+    if (
+      !imageSofteningRevealEnabled ||
+      !root.hasAttribute("data-asd-image-softening") ||
+      !Number.isFinite(imageSofteningRevealPointerX) ||
+      !Number.isFinite(imageSofteningRevealPointerY)
+    ) {
+      clearImageSofteningReveal();
+      return;
+    }
+
+    revealImageSofteningCandidates(
+      findImageSofteningRevealCandidates(imageSofteningRevealPointerX, imageSofteningRevealPointerY)
+    );
+  }
+
+  function findImageSofteningRevealCandidates(clientX, clientY) {
+    const elementsAtPoint =
+      typeof document.elementsFromPoint === "function" ? document.elementsFromPoint(clientX, clientY) : [];
+    const candidates = new Set();
+
+    for (const element of elementsAtPoint) {
+      if (!(element instanceof Element) || isExtensionUiElement(element)) continue;
+
+      const media = findSoftenedMediaForReveal(element, clientX, clientY);
+      if (media) candidates.add(media);
+
+      const background = element.hasAttribute(BACKGROUND_IMAGE_SOFTEN_ATTR)
+        ? element
+        : element.closest?.(`[${BACKGROUND_IMAGE_SOFTEN_ATTR}]`);
+      if (background instanceof Element && isVisibleElement(background)) candidates.add(background);
+    }
+
+    return candidates;
+  }
+
+  function findSoftenedMediaForReveal(element, clientX, clientY) {
+    if (element.matches(SOFTENED_MEDIA_SELECTOR)) {
+      return isVisibleElement(element) && isPointInsideElement(element, clientX, clientY) ? element : null;
+    }
+
+    const mediaContainer = element.closest("a, button, picture, figure, [role='button']");
+    const media = mediaContainer?.querySelector?.(SOFTENED_MEDIA_SELECTOR);
+    return media instanceof Element && isVisibleElement(media) && isPointInsideElement(media, clientX, clientY)
+      ? media
+      : null;
+  }
+
+  function isPointInsideElement(element, clientX, clientY) {
+    const rect = element.getBoundingClientRect();
+    return clientX >= rect.left && clientX <= rect.right && clientY >= rect.top && clientY <= rect.bottom;
+  }
+
+  function revealImageSofteningCandidates(nextElements) {
+    for (const element of imageSofteningRevealedElements) {
+      if (!nextElements.has(element)) element.removeAttribute(IMAGE_SOFTENING_REVEAL_ATTR);
+    }
+
+    for (const element of nextElements) {
+      element.setAttribute(IMAGE_SOFTENING_REVEAL_ATTR, "1");
+    }
+
+    imageSofteningRevealedElements = nextElements;
+  }
+
+  function clearImageSofteningReveal() {
+    for (const element of imageSofteningRevealedElements) {
+      element.removeAttribute(IMAGE_SOFTENING_REVEAL_ATTR);
+    }
+    imageSofteningRevealedElements = new Set();
+  }
+
   function syncBackgroundImageSoftening(shouldEnable) {
     if (backgroundImageSofteningEnabled === shouldEnable) return;
     backgroundImageSofteningEnabled = shouldEnable;
@@ -1522,6 +1656,7 @@
   function restoreBackgroundImageCandidates() {
     document.querySelectorAll(`[${BACKGROUND_IMAGE_SOFTEN_ATTR}]`).forEach((element) => {
       element.removeAttribute(BACKGROUND_IMAGE_SOFTEN_ATTR);
+      element.removeAttribute(IMAGE_SOFTENING_REVEAL_ATTR);
       element.style.removeProperty("--asd-background-softening-image");
       element.style.removeProperty("--asd-background-softening-size");
       element.style.removeProperty("--asd-background-softening-position");

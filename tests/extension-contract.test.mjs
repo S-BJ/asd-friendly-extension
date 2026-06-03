@@ -68,7 +68,10 @@ test("image softening is exposed with matching runtime contract", async () => {
   assert.match(contentStyles, /data-asd-image-softening/);
   assert.match(contentStyles, /html\[data-asd-foundation\]\[data-asd-image-softening\][\s\S]*img/);
   assert.match(contentScript, /data-asd-background-image-softened/);
+  assert.match(contentScript, /data-asd-image-softening-revealed/);
+  assert.match(contentScript, /elementsFromPoint/);
   assert.match(contentStyles, /data-asd-background-image-softened/);
+  assert.match(contentStyles, /data-asd-image-softening-revealed/);
   assert.match(contentStyles, /--asd-background-softening-image/);
   assert.match(contentStyles, /iframe\[src\*="youtube\.com\/embed"\]/);
   assert.match(contentStyles, /video:hover/);

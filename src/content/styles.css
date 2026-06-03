@@ -205,6 +205,7 @@ html[data-asd-foundation][data-asd-image-softening][data-asd-reduce-contrast] :i
 }
 
 html[data-asd-foundation][data-asd-image-softening]:not([data-asd-reduce-contrast]) :is(
+  [data-asd-image-softening-revealed],
   img:hover,
   img:focus-visible,
   a:hover img,
@@ -233,6 +234,7 @@ html[data-asd-foundation][data-asd-image-softening]:not([data-asd-reduce-contras
 }
 
 html[data-asd-foundation][data-asd-image-softening][data-asd-reduce-contrast] :is(
+  [data-asd-image-softening-revealed],
   img:hover,
   img:focus-visible,
   a:hover img,
@@ -296,7 +298,17 @@ html[data-asd-foundation][data-asd-image-softening]:not([data-asd-reduce-contras
   transform: none !important;
 }
 
+html[data-asd-foundation][data-asd-image-softening]:not([data-asd-reduce-contrast]) [data-asd-background-image-softened][data-asd-image-softening-revealed]::before {
+  filter: none !important;
+  transform: none !important;
+}
+
 html[data-asd-foundation][data-asd-image-softening][data-asd-reduce-contrast] [data-asd-background-image-softened]:is(:hover, :focus-within)::before {
+  filter: contrast(0.9) saturate(0.92) brightness(0.98) !important;
+  transform: none !important;
+}
+
+html[data-asd-foundation][data-asd-image-softening][data-asd-reduce-contrast] [data-asd-background-image-softened][data-asd-image-softening-revealed]::before {
   filter: contrast(0.9) saturate(0.92) brightness(0.98) !important;
   transform: none !important;
 }
