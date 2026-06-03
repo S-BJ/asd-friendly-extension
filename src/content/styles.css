@@ -440,6 +440,13 @@ html[data-asd-foundation][data-asd-image-softening][data-asd-reduce-contrast] [d
   letter-spacing: var(--asd-letter-spacing, 0) !important;
 }
 
+/* Word spacing (A3) */
+:root[data-asd-foundation][data-asd-word-spacing]:not([data-asd-sensitive-kind]) :is(
+  p, li, dd, dt, blockquote, h1, h2, h3, h4, h5, h6
+) {
+  word-spacing: var(--asd-word-spacing, 0) !important;
+}
+
 /* Reading width (A3): cap the measure of detected article content */
 :root[data-asd-foundation][data-asd-reading-width]:not([data-asd-sensitive-kind]) [data-asd-read-shape] {
   box-sizing: border-box !important;

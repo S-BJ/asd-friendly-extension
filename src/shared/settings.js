@@ -47,6 +47,7 @@ export const DEFAULT_SYNC_SETTINGS = Object.freeze({
   focusSpotlightScope: SPOTLIGHT_SCOPES.paragraph,
   readingProgress: false,
   letterSpacing: 0,
+  wordSpacing: 0,
   readingWidth: 0,
   readerChunking: false,
   aiHelperEnabled: false,
@@ -181,6 +182,7 @@ export function normalizeSyncSettings(value = {}) {
   settings.textScale = clampInteger(settings.textScale, 80, 140, DEFAULT_SYNC_SETTINGS.textScale);
   settings.lineHeight = clampNumber(settings.lineHeight, 1.4, 2.1, DEFAULT_SYNC_SETTINGS.lineHeight);
   settings.letterSpacing = clampNumber(settings.letterSpacing, 0, 0.12, DEFAULT_SYNC_SETTINGS.letterSpacing);
+  settings.wordSpacing = clampNumber(settings.wordSpacing, 0, 0.5, DEFAULT_SYNC_SETTINGS.wordSpacing);
   settings.readingWidth = normalizeReadingWidth(settings.readingWidth);
   settings.focusSpotlightScope = normalizeEnum(
     settings.focusSpotlightScope,

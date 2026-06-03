@@ -14,6 +14,7 @@ export const FEATURE_KEYS = Object.freeze({
   focusSpotlight: "focusSpotlight",
   readingProgress: "readingProgress",
   letterSpacing: "letterSpacing",
+  wordSpacing: "wordSpacing",
   readingWidth: "readingWidth",
   readerChunking: "readerChunking",
   imageSoftening: "imageSofteningEnabled",
@@ -91,6 +92,12 @@ export const FEATURE_DEFAULT_POLICY = Object.freeze({
     evidence: "time-blindness-support"
   },
   [FEATURE_KEYS.letterSpacing]: {
+    defaultEnabled: false,
+    globalToggle: true,
+    siteOverride: false,
+    evidence: "readability-support-preference-varies"
+  },
+  [FEATURE_KEYS.wordSpacing]: {
     defaultEnabled: false,
     globalToggle: true,
     siteOverride: false,

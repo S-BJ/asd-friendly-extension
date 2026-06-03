@@ -77,6 +77,7 @@ const I18N = {
     readingProgress: "Reading progress",
     readerChunking: "Chunk long text",
     letterSpacing: "Letter spacing",
+    wordSpacing: "Word spacing",
     readingWidth: "Reading width",
     widthOff: "Off",
     widthNarrow: "Narrow",
@@ -193,6 +194,7 @@ const I18N = {
     readingProgress: "읽기 진행바",
     readerChunking: "긴 글 끊어 읽기",
     letterSpacing: "자간",
+    wordSpacing: "단어 간격",
     readingWidth: "본문 폭",
     widthOff: "끄기",
     widthNarrow: "좁게",
@@ -647,7 +649,7 @@ function updateRangeOutput(control) {
     return;
   }
 
-  if (control.id === "letterSpacing") {
+  if (control.id === "letterSpacing" || control.id === "wordSpacing") {
     output.textContent = `${Number(control.value).toFixed(2)}em`;
     return;
   }

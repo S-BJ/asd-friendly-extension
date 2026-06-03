@@ -106,6 +106,7 @@
     focusSpotlightScope: "paragraph",
     readingProgress: false,
     letterSpacing: 0,
+    wordSpacing: 0,
     readingWidth: 0,
     readerChunking: false,
     aiHelperEnabled: false,
@@ -728,10 +729,13 @@
     root.style.setProperty("--asd-image-softening-blur", resolveImageSofteningBlur(effective.imageSofteningStrength));
 
     const letterSpacing = clampNumber(effective.letterSpacing, 0, 0.12, 0);
+    const wordSpacing = clampNumber(effective.wordSpacing, 0, 0.5, 0);
     const readingWidth = clampInteger(effective.readingWidth, 0, 100, 0);
     root.style.setProperty("--asd-letter-spacing", `${letterSpacing}em`);
+    root.style.setProperty("--asd-word-spacing", `${wordSpacing}em`);
     root.style.setProperty("--asd-reading-width", readingWidth > 0 ? `${readingWidth}ch` : "70ch");
     root.toggleAttribute("data-asd-letter-spacing", enabled && letterSpacing > 0);
+    root.toggleAttribute("data-asd-word-spacing", enabled && wordSpacing > 0);
     root.toggleAttribute("data-asd-reading-width", enabled && readingWidth > 0);
     root.toggleAttribute("data-asd-chunking", enabled && effective.readerChunking);
 
@@ -842,6 +846,7 @@
       adRemovalEnabled: false,
       imageSofteningEnabled: false,
       letterSpacing: DEFAULT_SETTINGS.letterSpacing,
+      wordSpacing: DEFAULT_SETTINGS.wordSpacing,
       readingWidth: DEFAULT_SETTINGS.readingWidth,
       readerChunking: false,
       focusSpotlight: false,
@@ -2865,6 +2870,7 @@
     settings.textScale = clampInteger(settings.textScale, 80, 140, DEFAULT_SETTINGS.textScale);
     settings.lineHeight = clampNumber(settings.lineHeight, 1.4, 2.1, DEFAULT_SETTINGS.lineHeight);
     settings.letterSpacing = clampNumber(settings.letterSpacing, 0, 0.12, DEFAULT_SETTINGS.letterSpacing);
+    settings.wordSpacing = clampNumber(settings.wordSpacing, 0, 0.5, DEFAULT_SETTINGS.wordSpacing);
     settings.readingWidth = normalizeReadingWidth(settings.readingWidth);
     return settings;
   }
