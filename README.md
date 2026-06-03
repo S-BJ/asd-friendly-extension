@@ -16,7 +16,7 @@ Runtime code lives under:
 
 - Global on/off control
 - Comfort presets (minimal-safe, soft light/dark calm, text-focused, motion-minimal, ADHD-focus)
-- Reduced motion
+- Reduced motion (forces reduced-motion, freezes animated GIFs, and tames video previews)
 - Reduced screen contrast
 - Readable font normalization
 - Adjustable text size, line spacing, and page density
@@ -27,7 +27,7 @@ Runtime code lives under:
 - Reader mode toggle
 - Community-site assist toggle for Reddit, Clien, DCInside, FMKorea, Inven, Ruliweb, and similar dense pages
 - Reading ruler toggle
-- ADHD focus & reading supports: focus spotlight (line/paragraph place-keeping), reading progress with estimated time left, adjustable letter spacing and reading width, and long-text chunking (all opt-in, sensitive-page aware)
+- ADHD focus & reading supports: focus spotlight (line/paragraph place-keeping), reading progress with estimated time left, adjustable letter spacing, word spacing, and reading width, and long-text chunking (all opt-in, sensitive-page aware)
 - Optional AI reading assist: opt-in, read-only summaries of a selection, the page, or a form (needs your own OpenAI key) — see [AI Assist](#ai-assist) below
 - Keyboard shortcuts (run AI analysis / toggle extension / focus spotlight / reader mode; rebindable at `chrome://extensions/shortcuts`)
 - Optional on-page floating quick-toggle for common controls
