@@ -37,9 +37,13 @@ test("popup exposes all background AI actions", async () => {
   assert.match(html, /id="explain-selection"/);
   assert.match(html, /id="explain-page"/);
   assert.match(html, /id="explain-form"/);
+  assert.match(html, /id="openAIEndpoint"/);
   assert.match(html, /id="openAIModel"/);
+  assert.match(html, /id="fetch-ai-models"/);
+  assert.match(html, /id="save-ai-model"/);
   assert.match(script, /MESSAGE_TYPES\.explainForm/);
   assert.match(script, /runAiAction\("form"\)/);
+  assert.match(script, /MESSAGE_TYPES\.fetchAiModels/);
   assert.match(script, /OPENAI_MODELS/);
 });
 

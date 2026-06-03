@@ -19,10 +19,12 @@ const aiStatusElement = document.getElementById("ai-status");
 const originLabel = document.getElementById("origin-label");
 const firstRunPanel = document.getElementById("first-run-panel");
 const apiKeyInput = document.getElementById("openAIApiKey");
+const openAIEndpointInput = document.getElementById("openAIEndpoint");
 const openAIModelSelect = document.getElementById("openAIModel");
 const toggleApiKeyButton = document.getElementById("toggle-api-key");
 const clearApiKeyButton = document.getElementById("clear-api-key");
-const backendUrlInput = document.getElementById("backendUrl");
+const fetchAiModelsButton = document.getElementById("fetch-ai-models");
+const saveAiModelButton = document.getElementById("save-ai-model");
 const explainSelectionButton = document.getElementById("explain-selection");
 const explainPageButton = document.getElementById("explain-page");
 const explainFormButton = document.getElementById("explain-form");
@@ -96,12 +98,14 @@ const I18N = {
     textSize: "Text size",
     lineSpacing: "Line spacing",
     aiHelperHeading: "AI helper",
-    aiHelperCopy: "Enter an OpenAI API key for direct use. A self-hosted backend URL is optional.",
+    aiHelperCopy: "Enter an OpenAI-compatible endpoint and API key, then load models.",
     aiHelperToggle: "AI helper",
-    openAIModelLabel: "OpenAI model",
-    openAIModelNote: "Used for direct API calls and request-scoped backend calls.",
-    apiKeyLabel: "OpenAI API key",
-    backendUrlLabel: "Self-hosted backend URL (optional)",
+    openAIEndpointLabel: "API endpoint",
+    openAIModelLabel: "Model",
+    openAIModelNote: "Load models from the endpoint, then choose one and save.",
+    apiKeyLabel: "API key",
+    fetchAiModelsButton: "Check and load models",
+    saveAiModelButton: "Save selected model",
     explainSelectionButton: "Explain selected text",
     explainPageButton: "Explain this page",
     explainFormButton: "Explain this form",
@@ -111,6 +115,11 @@ const I18N = {
     aiHelperDisabledPopup: "Turn on AI helper first.",
     aiSettingsSaved: "AI settings saved.",
     aiSettingsFailed: "Could not save AI settings.",
+    aiSettingsPending: "Press Check to save the endpoint and key and load models.",
+    aiModelsLoading: "Checking the endpoint and loading models.",
+    aiModelsLoaded: "Models loaded. Choose one, then save.",
+    aiModelsFailed: "Could not load models from this endpoint.",
+    aiModelSaved: "Model saved.",
     aiSelectionRunning: "Sending the selected text to the AI helper.",
     aiPageRunning: "Sending visible page context and any visible form structure to the AI helper.",
     aiFormRunning: "Sending visible form structure to the AI helper.",
@@ -213,12 +222,14 @@ const I18N = {
     textSize: "글자 크기",
     lineSpacing: "줄 간격",
     aiHelperHeading: "AI 도움",
-    aiHelperCopy: "OpenAI API 키를 넣으면 바로 사용할 수 있어요. 자체 호스팅 백엔드 URL은 선택 사항이에요.",
+    aiHelperCopy: "OpenAI 호환 endpoint와 API 키를 넣은 뒤 모델을 불러오세요.",
     aiHelperToggle: "AI 도움",
-    openAIModelLabel: "OpenAI 모델",
-    openAIModelNote: "직접 API 호출과 백엔드 요청별 호출에 사용돼요.",
-    apiKeyLabel: "OpenAI API 키",
-    backendUrlLabel: "자체 호스팅 백엔드 URL (선택)",
+    openAIEndpointLabel: "API endpoint",
+    openAIModelLabel: "모델",
+    openAIModelNote: "endpoint에서 모델을 불러온 뒤 하나를 선택하고 저장하세요.",
+    apiKeyLabel: "API 키",
+    fetchAiModelsButton: "확인 후 모델 불러오기",
+    saveAiModelButton: "선택한 모델 저장",
     explainSelectionButton: "선택한 텍스트 설명",
     explainPageButton: "이 페이지 설명",
     explainFormButton: "이 폼 설명",
@@ -228,6 +239,11 @@ const I18N = {
     aiHelperDisabledPopup: "AI 도움 기능을 먼저 켜주세요.",
     aiSettingsSaved: "AI 설정을 저장했어요.",
     aiSettingsFailed: "AI 설정을 저장하지 못했어요.",
+    aiSettingsPending: "확인을 눌러 endpoint와 키를 저장하고 모델을 불러오세요.",
+    aiModelsLoading: "endpoint를 확인하고 모델을 불러오고 있어요.",
+    aiModelsLoaded: "모델을 불러왔어요. 하나를 선택한 뒤 저장하세요.",
+    aiModelsFailed: "이 endpoint에서 모델을 불러오지 못했어요.",
+    aiModelSaved: "모델을 저장했어요.",
     aiSelectionRunning: "선택한 텍스트를 AI 도움으로 보내고 있어요.",
     aiPageRunning: "보이는 페이지 정보를 AI 도움으로 보내고 있어요.",
     aiFormRunning: "보이는 폼 구조를 AI 도움으로 보내고 있어요.",
@@ -298,7 +314,7 @@ document.getElementById("skip-first-run").addEventListener("click", () => {
 });
 
 apiKeyInput.addEventListener("change", () => {
-  void saveApiKey(apiKeyInput.value.trim());
+  setAiStatus(t("aiSettingsPending"));
 });
 
 toggleApiKeyButton.addEventListener("click", () => {
@@ -313,12 +329,16 @@ clearApiKeyButton.addEventListener("click", () => {
   void saveApiKey("", { cleared: true });
 });
 
-backendUrlInput.addEventListener("change", () => {
-  void saveLocalSetting("backendUrl", backendUrlInput.value.trim());
+openAIEndpointInput.addEventListener("change", () => {
+  setAiStatus(t("aiSettingsPending"));
 });
 
-openAIModelSelect.addEventListener("change", () => {
-  void saveLocalSetting("openAIModel", openAIModelSelect.value);
+fetchAiModelsButton.addEventListener("click", () => {
+  void fetchAiModels();
+});
+
+saveAiModelButton.addEventListener("click", () => {
+  void saveSelectedAiModel();
 });
 
 explainSelectionButton.addEventListener("click", () => {
@@ -336,7 +356,6 @@ explainFormButton.addEventListener("click", () => {
 void load();
 
 async function load() {
-  renderOpenAIModelOptions();
   const [settingsResponse, localResponse, tab] = await Promise.all([
     sendRuntimeMessage({ type: MESSAGE_TYPES.getSettings }),
     sendRuntimeMessage({ type: MESSAGE_TYPES.getLocalSettings }),
@@ -346,6 +365,7 @@ async function load() {
   syncSettings = normalizeSyncSettings(settingsResponse?.settings);
   localSettings = normalizeLocalSettings(localResponse?.settings);
   activeOrigin = originFromUrl(tab?.url || "");
+  renderOpenAIModelOptions();
   render();
   if (!aiStatusElement.textContent) {
     setAiStatus(t("aiStatusIdle"));
@@ -366,8 +386,9 @@ function render() {
   });
 
   apiKeyInput.value = localSettings.openAIApiKey || "";
+  openAIEndpointInput.value = localSettings.openAIEndpoint || "";
+  renderOpenAIModelOptions();
   openAIModelSelect.value = localSettings.openAIModel || OPENAI_MODELS[0].id;
-  backendUrlInput.value = localSettings.backendUrl || "";
   originLabel.textContent = activeOrigin || t("regularTabMissing");
 
   renderSiteOverrides();
@@ -386,14 +407,24 @@ function applyLocale() {
 }
 
 function renderOpenAIModelOptions() {
+  const models = localSettings.openAIAvailableModels.length
+    ? localSettings.openAIAvailableModels.map((id) => ({ id, label: id, description: "" }))
+    : [...OPENAI_MODELS];
+  const selectedModel = localSettings.openAIModel || OPENAI_MODELS[0].id;
+  if (!models.some((model) => model.id === selectedModel)) {
+    models.unshift({ id: selectedModel, label: selectedModel, description: "" });
+  }
+
   openAIModelSelect.replaceChildren(
-    ...OPENAI_MODELS.map((model) => {
+    ...models.map((model) => {
       const option = document.createElement("option");
       option.value = model.id;
-      option.textContent = `${model.label} - ${model.description}`;
+      option.textContent = model.description ? `${model.label} - ${model.description}` : model.label;
       return option;
     })
   );
+  openAIModelSelect.disabled = models.length === 0;
+  saveAiModelButton.disabled = models.length === 0;
 }
 
 function renderFirstRun() {
@@ -505,7 +536,9 @@ async function saveLocalSetting(key, value) {
 async function saveApiKey(value, { cleared = false } = {}) {
   const response = await sendRuntimeMessage({
     type: MESSAGE_TYPES.setLocalSettings,
-    payload: { openAIApiKey: value }
+    payload: cleared
+      ? { openAIApiKey: value, openAIAvailableModels: [] }
+      : { openAIApiKey: value }
   });
 
   if (!response?.ok) {
@@ -524,6 +557,56 @@ async function saveApiKey(value, { cleared = false } = {}) {
     return;
   }
   setAiStatus(t("aiSettingsSaved"));
+}
+
+async function fetchAiModels() {
+  const endpoint = openAIEndpointInput.value.trim();
+  const apiKey = apiKeyInput.value.trim();
+
+  fetchAiModelsButton.disabled = true;
+  setAiStatus(t("aiModelsLoading"));
+  const response = await sendRuntimeMessage({
+    type: MESSAGE_TYPES.fetchAiModels,
+    payload: {
+      openAIEndpoint: endpoint,
+      openAIApiKey: apiKey,
+      openAIModel: openAIModelSelect.value
+    }
+  });
+  fetchAiModelsButton.disabled = false;
+
+  if (!response?.ok) {
+    setAiStatus(response?.error || t("aiModelsFailed"), true);
+    return;
+  }
+
+  localSettings = normalizeLocalSettings(response.settings);
+  render();
+  if (Array.isArray(response.models) && response.models.length > 0 && !response.models.includes(localSettings.openAIModel)) {
+    openAIModelSelect.value = response.models[0];
+  }
+  setAiStatus(t("aiModelsLoaded"));
+}
+
+async function saveSelectedAiModel() {
+  const response = await sendRuntimeMessage({
+    type: MESSAGE_TYPES.setLocalSettings,
+    payload: {
+      openAIEndpoint: openAIEndpointInput.value.trim(),
+      openAIApiKey: apiKeyInput.value.trim(),
+      openAIModel: openAIModelSelect.value,
+      openAIAvailableModels: localSettings.openAIAvailableModels
+    }
+  });
+
+  if (!response?.ok) {
+    setAiStatus(response?.error || t("aiSettingsFailed"), true);
+    return;
+  }
+
+  localSettings = normalizeLocalSettings(response.settings);
+  render();
+  setAiStatus(t("aiModelSaved"));
 }
 
 async function saveSiteOverride(key, value) {

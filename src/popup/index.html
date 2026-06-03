@@ -220,7 +220,7 @@
           <span class="group-hint" data-i18n="hintAi">Explain page, form, selection</span>
         </summary>
         <div class="group-body">
-        <p class="section-copy" data-i18n="aiHelperCopy">Enter an OpenAI API key for direct use. A self-hosted backend URL is optional.</p>
+        <p class="section-copy" data-i18n="aiHelperCopy">Enter an OpenAI-compatible endpoint and API key, then load models.</p>
         <div class="grid">
           <label class="toggle">
             <input type="checkbox" data-setting="aiHelperEnabled">
@@ -232,14 +232,13 @@
           </label>
         </div>
 
-        <label class="field">
-          <span data-i18n="openAIModelLabel">OpenAI model</span>
-          <select id="openAIModel"></select>
-        </label>
-        <p class="field-note" data-i18n="openAIModelNote">Used for direct API calls and request-scoped backend calls.</p>
+        <div class="field">
+          <label for="openAIEndpoint" data-i18n="openAIEndpointLabel">API endpoint</label>
+          <input id="openAIEndpoint" type="url" autocomplete="off" spellcheck="false" placeholder="https://api.openai.com/v1">
+        </div>
 
         <div class="field">
-          <label for="openAIApiKey" data-i18n="apiKeyLabel">OpenAI API key</label>
+          <label for="openAIApiKey" data-i18n="apiKeyLabel">API key</label>
           <div class="field-row">
             <input id="openAIApiKey" type="password" autocomplete="off" spellcheck="false" placeholder="sk-...">
             <button id="toggle-api-key" class="text-button small" type="button" aria-pressed="false" data-i18n="apiKeyReveal">Show</button>
@@ -248,10 +247,14 @@
           <p class="field-note" data-i18n="apiKeyStorageNote">Stored on this device only. Remove it if you stop using the extension.</p>
         </div>
 
+        <button id="fetch-ai-models" class="action-button" type="button" data-i18n="fetchAiModelsButton">Check and load models</button>
+
         <label class="field">
-          <span data-i18n="backendUrlLabel">Self-hosted backend URL (optional)</span>
-          <input id="backendUrl" type="text" autocomplete="off" spellcheck="false" placeholder="http://127.0.0.1:8787">
+          <span data-i18n="openAIModelLabel">Model</span>
+          <select id="openAIModel"></select>
         </label>
+        <p class="field-note" data-i18n="openAIModelNote">Load models from the endpoint, then choose one and save.</p>
+        <button id="save-ai-model" class="action-button" type="button" data-i18n="saveAiModelButton">Save selected model</button>
 
         <div class="action-list">
           <button id="explain-selection" class="action-button primary" type="button" data-i18n="explainSelectionButton">Explain selected text</button>

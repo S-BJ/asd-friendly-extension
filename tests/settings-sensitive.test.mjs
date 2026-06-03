@@ -19,8 +19,9 @@ import {
 test("local settings normalize stored AI settings and site override origins", () => {
   const normalized = normalizeLocalSettings({
     openAIApiKey: "  sk-test  ",
-    openAIModel: "gpt-5.5",
-    backendUrl: "http://127.0.0.1:8787///",
+    openAIEndpoint: "http://127.0.0.1:8787/v1///",
+    openAIModel: "local-model",
+    openAIAvailableModels: ["local-model", "local-model", "other-model"],
     siteOverrides: {
       "https://example.com": { allowAds: true },
       "not a url": { allowAds: true }
@@ -28,17 +29,19 @@ test("local settings normalize stored AI settings and site override origins", ()
   });
 
   assert.equal(normalized.openAIApiKey, "sk-test");
-  assert.equal(normalized.openAIModel, "gpt-5.5");
-  assert.equal(normalized.backendUrl, "http://127.0.0.1:8787");
+  assert.equal(normalized.openAIEndpoint, "http://127.0.0.1:8787/v1");
+  assert.equal(normalized.openAIModel, "local-model");
+  assert.deepEqual(normalized.openAIAvailableModels, ["local-model", "other-model"]);
+  assert.equal("backendUrl" in normalized, false);
   assert.deepEqual(Object.keys(normalized.siteOverrides), ["https://example.com"]);
   assert.equal(normalized.siteOverrides["https://example.com"].allowAds, true);
 });
 
-test("OpenAI model selection normalizes to supported model IDs", () => {
+test("OpenAI model selection accepts endpoint-provided model IDs", () => {
   assert.equal(DEFAULT_OPENAI_MODEL, "gpt-5.4-mini");
   assert.equal(normalizeOpenAIModel("gpt-5.4-nano"), "gpt-5.4-nano");
-  assert.equal(normalizeOpenAIModel("unknown-model"), DEFAULT_OPENAI_MODEL);
-  assert.equal(normalizeLocalSettings({ openAIModel: "unknown-model" }).openAIModel, DEFAULT_OPENAI_MODEL);
+  assert.equal(normalizeOpenAIModel("unknown-model"), "unknown-model");
+  assert.equal(normalizeLocalSettings({ openAIModel: "unknown-model" }).openAIModel, "unknown-model");
 });
 
 test("sync settings clamp numeric values and normalize booleans", () => {

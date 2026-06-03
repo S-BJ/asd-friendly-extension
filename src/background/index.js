@@ -1,4 +1,10 @@
-import { requestFormExplanation, requestPageSummary, requestSelectionExplanation, AI_CLIENT_ERROR_CODES } from "./ai-client.js";
+import {
+  fetchAvailableModels,
+  requestFormExplanation,
+  requestPageSummary,
+  requestSelectionExplanation,
+  AI_CLIENT_ERROR_CODES
+} from "./ai-client.js";
 import { resolveLocale } from "../shared/i18n.js";
 import { MESSAGE_TYPES } from "../shared/messages.js";
 import {
@@ -21,13 +27,13 @@ const UI_TEXT = {
   en: {
     regularPageRequired: "Open a regular webpage tab first.",
     aiHelperDisabled: "Turn on AI helper first.",
-    missingApiKey: "Enter your OpenAI API key in the popup, or set a self-hosted backend URL.",
+    missingApiKey: "Enter an API endpoint and API key in the popup, then choose a model.",
     selectedTextRequired: "Highlight text on the page first.",
     pageContextUnavailable: "This page did not expose enough visible content to explain yet.",
     formContextUnavailable: "This page did not expose a form I can explain.",
     pageBlocked: "This page does not allow the extension to read its content. Restricted pages such as chrome:// or the Chrome Web Store are blocked.",
     sensitivePageBlocked: "AI helper is off on this page because it looks like a sign-in, payment, identity, or upload screen. Open a regular page to use AI.",
-    backendOffline: "The self-hosted AI backend is not reachable.",
+    backendOffline: "The AI endpoint is not reachable.",
     backendInvalid: "The AI service returned an invalid response.",
     requestTimedOut: "The AI request did not finish in time. Try again.",
     selectionFailed: "The AI helper could not explain the selected text.",
@@ -40,13 +46,13 @@ const UI_TEXT = {
   ko: {
     regularPageRequired: "\uc77c\ubc18 \uc6f9 \ud398\uc774\uc9c0 \ud0ed\uc744 \uba3c\uc800 \uc5f4\uc5b4\uc8fc\uc138\uc694.",
     aiHelperDisabled: "AI \ub3c4\uc6c0 \uae30\ub2a5\uc744 \uba3c\uc800 \ucf1c\uc8fc\uc138\uc694.",
-    missingApiKey: "\ud31d\uc5c5\uc5d0 OpenAI API \ud0a4\ub97c \uc785\ub825\ud558\uac70\ub098 \uc790\uccb4 \ud638\uc2a4\ud305 \ubc31\uc5d4\ub4dc URL\uc744 \uc124\uc815\ud574\uc8fc\uc138\uc694.",
+    missingApiKey: "\ud31d\uc5c5\uc5d0 API endpoint\uc640 API \ud0a4\ub97c \uc785\ub825\ud55c \ub4a4 \ubaa8\ub378\uc744 \uc120\ud0dd\ud574\uc8fc\uc138\uc694.",
     selectedTextRequired: "\ud398\uc774\uc9c0\uc5d0\uc11c \ud14d\uc2a4\ud2b8\ub97c \uba3c\uc800 \uc120\ud0dd\ud574\uc8fc\uc138\uc694.",
     pageContextUnavailable: "\uc774 \ud398\uc774\uc9c0\uc5d0\uc11c\ub294 \uc124\uba85\uc5d0 \ud544\uc694\ud55c \ubcf4\uc774\ub294 \uc815\ubcf4\ub97c \ucda9\ubd84\ud788 \uac00\uc838\uc624\uc9c0 \ubabb\ud588\uc5b4\uc694.",
     formContextUnavailable: "\uc124\uba85\ud560 \uc218 \uc788\ub294 \ud3fc\uc744 \uc774 \ud398\uc774\uc9c0\uc5d0\uc11c \ucc3e\uc9c0 \ubabb\ud588\uc5b4\uc694.",
     pageBlocked: "\uc774 \ud398\uc774\uc9c0\ub294 \ud655\uc7a5 \ud504\ub85c\uadf8\ub7a8\uc774 \ub0b4\uc6a9\uc744 \uc77d\uc744 \uc218 \uc5c6\uc5b4\uc694. chrome:// \ud398\uc774\uc9c0\ub098 \ud06c\ub86c \uc6f9\uc2a4\ud1a0\uc5b4 \uac19\uc740 \uc81c\ud55c \ud398\uc774\uc9c0\ub294 \uc9c0\uc6d0\ud558\uc9c0 \uc54a\uc544\uc694.",
     sensitivePageBlocked: "\ub85c\uadf8\uc778, \uacb0\uc81c, \ubcf8\uc778\uc778\uc99d, \uc5c5\ub85c\ub4dc \ud398\uc774\uc9c0\ub85c \ubcf4\uc5ec\uc11c AI \ub3c4\uc6c0\uc744 \uaed0\uc5b4\uc694. \uc77c\ubc18 \ud398\uc774\uc9c0\uc5d0\uc11c \ub2e4\uc2dc \uc2dc\ub3c4\ud574 \uc8fc\uc138\uc694.",
-    backendOffline: "\uc790\uccb4 \ud638\uc2a4\ud305 AI \ubc31\uc5d4\ub4dc\uc5d0 \uc5f0\uacb0\ud560 \uc218 \uc5c6\uc5b4\uc694.",
+    backendOffline: "AI endpoint\uc5d0 \uc5f0\uacb0\ud560 \uc218 \uc5c6\uc5b4\uc694.",
     backendInvalid: "AI \uc11c\ube44\uc2a4\uac00 \uc62c\ubc14\ub978 \uc751\ub2f5\uc744 \ubcf4\ub0b4\uc9c0 \ubabb\ud588\uc5b4\uc694.",
     requestTimedOut: "AI \uc694\uccad\uc774 \uc2dc\uac04 \uc548\uc5d0 \ub05d\ub098\uc9c0 \ubabb\ud588\uc5b4\uc694. \ub2e4\uc2dc \uc2dc\ub3c4\ud574 \uc8fc\uc138\uc694.",
     selectionFailed: "AI \ub3c4\uc6c0\uc774 \uc120\ud0dd\ud55c \ud14d\uc2a4\ud2b8\ub97c \uc124\uba85\ud558\uc9c0 \ubabb\ud588\uc5b4\uc694.",
@@ -109,6 +115,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
     case MESSAGE_TYPES.setLocalSettings:
       return respondWith(setLocalSettings(message.payload).then((settings) => ({ settings })), sendResponse);
+
+    case MESSAGE_TYPES.fetchAiModels:
+      return respondWith(fetchAiModelsFromMessage(message), sendResponse);
 
     case MESSAGE_TYPES.getSiteOverrides:
       return respondWith(getLocalSettings().then((settings) => ({ siteOverrides: settings.siteOverrides })), sendResponse);
@@ -209,6 +218,19 @@ async function setLocalSettings(payload = {}) {
   await chrome.storage.local.set(next);
   await syncDeclarativeAdBlocking(await getSyncSettings(), next);
   return next;
+}
+
+async function fetchAiModelsFromMessage(message) {
+  const current = await getLocalSettings();
+  const candidateSettings = normalizeLocalSettings({ ...current, ...safeObject(message.payload) });
+  const models = await fetchAvailableModels(candidateSettings);
+  if (models.length === 0) throw new Error("The endpoint returned no models.");
+  const next = await setLocalSettings({
+    openAIApiKey: candidateSettings.openAIApiKey,
+    openAIEndpoint: candidateSettings.openAIEndpoint,
+    openAIAvailableModels: models
+  });
+  return { models, settings: next };
 }
 
 async function setSiteOverrideFromMessage(message, sender) {

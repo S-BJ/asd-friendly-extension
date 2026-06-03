@@ -1,5 +1,10 @@
 import { normalizeLocalSettings } from "../shared/settings.js";
-import { DEFAULT_OPENAI_MODEL, normalizeOpenAIModel } from "../shared/openai-models.js";
+import {
+  DEFAULT_OPENAI_ENDPOINT,
+  DEFAULT_OPENAI_MODEL,
+  normalizeOpenAIEndpoint,
+  normalizeOpenAIModel
+} from "../shared/openai-models.js";
 import {
   EXPLANATION_SCHEMA,
   FORM_EXPLANATION_SCHEMA,
@@ -20,7 +25,6 @@ import {
   shapeSelectionPayload
 } from "../shared/ai-normalize.js";
 
-const OPENAI_API_URL = "https://api.openai.com/v1/responses";
 const REQUEST_TIMEOUT_MS = 30_000;
 
 export const AI_CLIENT_ERROR_CODES = Object.freeze({
@@ -34,54 +38,61 @@ export const AI_CLIENT_ERROR_CODES = Object.freeze({
 export async function requestSelectionExplanation(localSettings, context) {
   const settings = normalizeLocalSettings(localSettings);
   if (settings.openAIApiKey) {
-    return requestSelectionDirect(settings.openAIApiKey, settings.openAIModel, context);
-  }
-  if (settings.backendUrl) {
-    return requestSelectionThroughBackend(settings, context);
+    return requestSelectionDirect(settings, context);
   }
   throw createAiClientError(
     AI_CLIENT_ERROR_CODES.missingApiKey,
-    "Enter your OpenAI API key in the popup, or set a self-hosted backend URL."
+    "Enter an API endpoint and API key in the popup, then choose a model."
   );
 }
 
 export async function requestPageSummary(localSettings, context) {
   const settings = normalizeLocalSettings(localSettings);
   if (settings.openAIApiKey) {
-    return requestPageDirect(settings.openAIApiKey, settings.openAIModel, context);
-  }
-  if (settings.backendUrl) {
-    return requestPageThroughBackend(settings, context);
+    return requestPageDirect(settings, context);
   }
   throw createAiClientError(
     AI_CLIENT_ERROR_CODES.missingApiKey,
-    "Enter your OpenAI API key in the popup, or set a self-hosted backend URL."
+    "Enter an API endpoint and API key in the popup, then choose a model."
   );
 }
 
 export async function requestFormExplanation(localSettings, context) {
   const settings = normalizeLocalSettings(localSettings);
   if (settings.openAIApiKey) {
-    return requestFormDirect(settings.openAIApiKey, settings.openAIModel, context);
-  }
-  if (settings.backendUrl) {
-    return requestFormThroughBackend(settings, context);
+    return requestFormDirect(settings, context);
   }
   throw createAiClientError(
     AI_CLIENT_ERROR_CODES.missingApiKey,
-    "Enter your OpenAI API key in the popup, or set a self-hosted backend URL."
+    "Enter an API endpoint and API key in the popup, then choose a model."
   );
 }
 
-async function requestSelectionDirect(apiKey, model, context) {
+export async function fetchAvailableModels(localSettings) {
+  const settings = normalizeLocalSettings(localSettings);
+  if (!settings.openAIApiKey) {
+    throw createAiClientError(AI_CLIENT_ERROR_CODES.missingApiKey, "Enter an API key first.");
+  }
+
+  const data = await requestModels(settings.openAIEndpoint, settings.openAIApiKey);
+  return Array.isArray(data.data)
+    ? data.data
+        .map((model) => (typeof model?.id === "string" ? model.id.trim() : ""))
+        .filter(Boolean)
+        .sort((a, b) => a.localeCompare(b))
+    : [];
+}
+
+async function requestSelectionDirect(settings, context) {
   const normalizedContext = normalizeSelectionContext(context);
-  const openAIModel = normalizeOpenAIModel(model);
+  const openAIModel = normalizeOpenAIModel(settings.openAIModel);
   if (!normalizedContext.selectionText) {
     throw createAiClientError(AI_CLIENT_ERROR_CODES.requestFailed, "No selected text was provided.");
   }
 
   const parsed = await requestStructuredOutput({
-    apiKey,
+    endpoint: settings.openAIEndpoint,
+    apiKey: settings.openAIApiKey,
     name: "selection_explanation",
     schema: EXPLANATION_SCHEMA,
     model: openAIModel,
@@ -96,11 +107,12 @@ async function requestSelectionDirect(apiKey, model, context) {
   };
 }
 
-async function requestPageDirect(apiKey, model, context) {
+async function requestPageDirect(settings, context) {
   const normalizedContext = normalizePageContext(context);
-  const openAIModel = normalizeOpenAIModel(model);
+  const openAIModel = normalizeOpenAIModel(settings.openAIModel);
   const parsed = await requestStructuredOutput({
-    apiKey,
+    endpoint: settings.openAIEndpoint,
+    apiKey: settings.openAIApiKey,
     name: "page_summary",
     schema: PAGE_SUMMARY_SCHEMA,
     model: openAIModel,
@@ -115,15 +127,16 @@ async function requestPageDirect(apiKey, model, context) {
   };
 }
 
-async function requestFormDirect(apiKey, model, context) {
+async function requestFormDirect(settings, context) {
   const normalizedContext = normalizeFormContext(context);
-  const openAIModel = normalizeOpenAIModel(model);
+  const openAIModel = normalizeOpenAIModel(settings.openAIModel);
   if (normalizedContext.fields.length === 0) {
     throw createAiClientError(AI_CLIENT_ERROR_CODES.requestFailed, "No form fields were provided.");
   }
 
   const parsed = await requestStructuredOutput({
-    apiKey,
+    endpoint: settings.openAIEndpoint,
+    apiKey: settings.openAIApiKey,
     name: "form_explanation",
     schema: FORM_EXPLANATION_SCHEMA,
     model: openAIModel,
@@ -138,35 +151,12 @@ async function requestFormDirect(apiKey, model, context) {
   };
 }
 
-async function requestSelectionThroughBackend(settings, context) {
-  const data = await postJson(settings, "/api/explain-selection", context);
-  return {
-    model: typeof data.model === "string" ? data.model : "",
-    payload: data.explanation && typeof data.explanation === "object" ? data.explanation : {}
-  };
-}
-
-async function requestPageThroughBackend(settings, context) {
-  const data = await postJson(settings, "/api/summarize-page", context);
-  return {
-    model: typeof data.model === "string" ? data.model : "",
-    payload: data.summary && typeof data.summary === "object" ? data.summary : {}
-  };
-}
-
-async function requestFormThroughBackend(settings, context) {
-  const data = await postJson(settings, "/api/explain-form", context);
-  return {
-    model: typeof data.model === "string" ? data.model : "",
-    payload: data.explanation && typeof data.explanation === "object" ? data.explanation : {}
-  };
-}
-
-async function requestStructuredOutput({ apiKey, model = DEFAULT_OPENAI_MODEL, name, schema, maxOutputTokens, instructions, contentText }) {
+async function requestStructuredOutput({ endpoint = DEFAULT_OPENAI_ENDPOINT, apiKey, model = DEFAULT_OPENAI_MODEL, name, schema, maxOutputTokens, instructions, contentText }) {
+  const openAIEndpoint = normalizeOpenAIEndpoint(endpoint);
   const openAIModel = normalizeOpenAIModel(model);
   let response;
   try {
-    response = await fetchWithTimeout(OPENAI_API_URL, {
+    response = await fetchWithTimeout(`${openAIEndpoint}/responses`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -254,30 +244,26 @@ async function requestStructuredOutput({ apiKey, model = DEFAULT_OPENAI_MODEL, n
   }
 }
 
-async function postJson(localSettings, path, payload) {
-  const settings = normalizeLocalSettings(localSettings);
+async function requestModels(endpoint, apiKey) {
+  const openAIEndpoint = normalizeOpenAIEndpoint(endpoint);
   let response;
   try {
-    response = await fetchWithTimeout(`${settings.backendUrl}${path}`, {
-      method: "POST",
+    response = await fetchWithTimeout(`${openAIEndpoint}/models`, {
+      method: "GET",
       headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        ...payload,
-        openAIModel: settings.openAIModel
-      })
+        Authorization: `Bearer ${apiKey}`
+      }
     });
   } catch (error) {
     if (error?.name === "AbortError") {
       throw createAiClientError(
         AI_CLIENT_ERROR_CODES.requestTimedOut,
-        "The self-hosted AI backend did not respond in time."
+        "The model list request did not finish in time."
       );
     }
     throw createAiClientError(
       AI_CLIENT_ERROR_CODES.backendOffline,
-      "The self-hosted AI backend is not reachable."
+      "The AI endpoint is not reachable."
     );
   }
 
@@ -291,10 +277,14 @@ async function postJson(localSettings, path, payload) {
     );
   }
 
-  if (!response.ok || !data?.ok) {
+  if (!response.ok) {
+    const message = normalizeResponseMessage(
+      typeof data?.error?.message === "string" ? data.error.message : String(data?.error || ""),
+      280
+    ) || "The model list request failed.";
     throw createAiClientError(
       AI_CLIENT_ERROR_CODES.requestFailed,
-      typeof data?.error === "string" && data.error ? data.error : "The AI request failed."
+      message
     );
   }
 

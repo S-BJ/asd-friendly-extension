@@ -1,4 +1,10 @@
-import { DEFAULT_OPENAI_MODEL, normalizeOpenAIModel } from "./openai-models.js";
+import {
+  DEFAULT_OPENAI_ENDPOINT,
+  DEFAULT_OPENAI_MODEL,
+  normalizeOpenAIEndpoint,
+  normalizeOpenAIModel,
+  normalizeOpenAIModelList
+} from "./openai-models.js";
 
 export const THEME_PRESETS = Object.freeze({
   original: "original",
@@ -58,8 +64,9 @@ export const DEFAULT_SYNC_SETTINGS = Object.freeze({
 
 export const DEFAULT_LOCAL_SETTINGS = Object.freeze({
   openAIApiKey: "",
+  openAIEndpoint: DEFAULT_OPENAI_ENDPOINT,
   openAIModel: DEFAULT_OPENAI_MODEL,
-  backendUrl: "",
+  openAIAvailableModels: [],
   siteOverrides: {}
 });
 
@@ -209,9 +216,11 @@ export function normalizeSyncSettings(value = {}) {
 export function normalizeLocalSettings(value = {}) {
   const settings = { ...DEFAULT_LOCAL_SETTINGS, ...safeObject(value) };
   settings.openAIApiKey = typeof settings.openAIApiKey === "string" ? settings.openAIApiKey.trim() : "";
+  settings.openAIEndpoint = normalizeOpenAIEndpoint(settings.openAIEndpoint || settings.backendUrl);
   settings.openAIModel = normalizeOpenAIModel(settings.openAIModel);
-  settings.backendUrl = typeof settings.backendUrl === "string" ? settings.backendUrl.trim().replace(/\/+$/, "") : "";
+  settings.openAIAvailableModels = normalizeOpenAIModelList(settings.openAIAvailableModels);
   settings.siteOverrides = normalizeSiteOverrides(settings.siteOverrides);
+  delete settings.backendUrl;
   return settings;
 }
 

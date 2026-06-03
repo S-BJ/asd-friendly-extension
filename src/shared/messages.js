@@ -4,6 +4,7 @@ export const MESSAGE_TYPES = Object.freeze({
   setSettings: "SET_SETTINGS",
   getLocalSettings: "GET_LOCAL_SETTINGS",
   setLocalSettings: "SET_LOCAL_SETTINGS",
+  fetchAiModels: "FETCH_AI_MODELS",
   completeFirstRun: "COMPLETE_FIRST_RUN",
   getSiteOverrides: "GET_SITE_OVERRIDES",
   setSiteOverride: "SET_SITE_OVERRIDE",
