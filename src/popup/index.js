@@ -27,7 +27,6 @@ const explainSelectionButton = document.getElementById("explain-selection");
 const explainPageButton = document.getElementById("explain-page");
 const explainFormButton = document.getElementById("explain-form");
 const aiShortcutKeyElement = document.getElementById("ai-shortcut-key");
-const editAiShortcutButton = document.getElementById("edit-ai-shortcut");
 
 const I18N = {
   en: {
@@ -107,9 +106,7 @@ const I18N = {
     explainFormButton: "Explain this form",
     aiStatusIdle: "AI results open on the current page.",
     aiShortcutLabel: "AI analysis shortcut",
-    aiShortcutEdit: "Change",
     aiShortcutNone: "Not set",
-    aiShortcutHint: "Opens your browser's keyboard-shortcut settings.",
     aiHelperDisabledPopup: "Turn on AI helper first.",
     aiSettingsSaved: "AI settings saved.",
     aiSettingsFailed: "Could not save AI settings.",
@@ -225,9 +222,7 @@ const I18N = {
     explainFormButton: "이 폼 설명",
     aiStatusIdle: "AI 결과는 현재 페이지에서 열려요.",
     aiShortcutLabel: "AI 분석 단축키",
-    aiShortcutEdit: "변경",
     aiShortcutNone: "지정 안 됨",
-    aiShortcutHint: "브라우저의 단축키 설정을 열어요.",
     aiHelperDisabledPopup: "AI 도움 기능을 먼저 켜주세요.",
     aiSettingsSaved: "AI 설정을 저장했어요.",
     aiSettingsFailed: "AI 설정을 저장하지 못했어요.",
@@ -336,10 +331,6 @@ explainFormButton.addEventListener("click", () => {
   void runAiAction("form");
 });
 
-editAiShortcutButton.addEventListener("click", () => {
-  openShortcutSettings();
-});
-
 void load();
 
 async function load() {
@@ -438,21 +429,6 @@ function refreshAiShortcut() {
       : null;
     aiShortcutKeyElement.textContent = command && command.shortcut ? command.shortcut : t("aiShortcutNone");
   });
-}
-
-// Chrome/Edge cannot rebind a command from extension code, so the button opens
-// the browser's own shortcut settings page. Firefox can open it programmatically.
-function openShortcutSettings() {
-  if (typeof browser !== "undefined" && browser.commands && browser.commands.openShortcutSettings) {
-    void browser.commands.openShortcutSettings();
-    window.close();
-    return;
-  }
-  const url = navigator.userAgent.includes("Edg/")
-    ? "edge://extensions/shortcuts"
-    : "chrome://extensions/shortcuts";
-  chrome.tabs.create({ url });
-  window.close();
 }
 
 async function completeFirstRun(presetKey) {
