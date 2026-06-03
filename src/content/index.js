@@ -804,11 +804,14 @@
     }
 
     currentReaderTarget = findReaderTarget();
-    if (currentReaderTarget) {
+    if (currentReaderTarget && !isLandingPath(location.pathname)) {
       currentProfile = PAGE_PROFILES.reader;
       currentCommunitySubtype = COMMUNITY_SUBTYPES.none;
       return;
     }
+    // A site's root/landing path is a homepage, not an article, even when it is
+    // text-heavy enough to score as a reading container — do not reshape it.
+    currentReaderTarget = null;
 
     if (detectPortalProfile()) {
       currentProfile = PAGE_PROFILES.portal;
@@ -858,6 +861,14 @@
       focusSpotlight: false,
       readingProgress: false
     });
+  }
+
+  function isLandingPath(pathname) {
+    const path = String(pathname || "/").replace(/\/+$/, "") || "/";
+    if (path === "/") return true;
+    if (/^\/[a-z]{2}(-[a-z]{2})?$/i.test(path)) return true; // bare locale root, e.g. /en, /ko, /en-US
+    if (/^\/(index|main|home|default)(\.\w+)?$/i.test(path)) return true;
+    return false;
   }
 
   function findReaderTarget() {
