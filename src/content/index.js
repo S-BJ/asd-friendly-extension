@@ -469,6 +469,7 @@
   const ASSIST_UI_HOST_ID = "asd-foundation-ai-host";
   const CONTRAST_FIX_ATTR = "data-asd-contrast-fix";
   const BACKGROUND_IMAGE_SOFTEN_ATTR = "data-asd-background-image-softened";
+  const GIF_FROZEN_ATTR = "data-asd-gif-frozen";
   let syncSettings = { ...DEFAULT_SETTINGS };
   let siteOverrides = {};
   let activeOrigin = "";
@@ -491,6 +492,10 @@
   let adScanPending = false;
   let backgroundImageScanTimer = null;
   let backgroundImageScanPending = false;
+  let gifObserver = null;
+  let gifFreezingEnabled = false;
+  let gifScanTimer = null;
+  let gifScanPending = false;
   let rulerRafPending = false;
   let rulerPointerY = 0;
   let spotlightEl = null;
@@ -758,6 +763,7 @@
     syncReadShape(enabled && !sensitiveMode && (effective.readerChunking || readingWidth > 0));
     syncAdRemoval(enabled && effective.adRemovalEnabled);
     syncBackgroundImageSoftening(enabled && effective.imageSofteningEnabled);
+    syncGifFreezing(enabled && effective.reduceMotion && !sensitiveMode);
     if (IS_TOP_FRAME) {
       syncReadingRuler(enabled && effective.readingRuler);
       syncFocusSpotlight(enabled && effective.focusSpotlight, effective.focusSpotlightScope);
@@ -1492,6 +1498,113 @@
       element.style.removeProperty("--asd-background-softening-size");
       element.style.removeProperty("--asd-background-softening-position");
       element.style.removeProperty("--asd-background-softening-repeat");
+    });
+  }
+
+  function syncGifFreezing(shouldEnable) {
+    if (gifFreezingEnabled === shouldEnable) return;
+    gifFreezingEnabled = shouldEnable;
+
+    if (!shouldEnable) {
+      stopGifObserver();
+      restoreFrozenGifs();
+      return;
+    }
+
+    scanGifCandidates(document);
+    startGifObserver();
+  }
+
+  function startGifObserver() {
+    if (gifObserver || !document.documentElement) return;
+    gifObserver = new MutationObserver((records) => {
+      for (const record of records) {
+        if (record.type === "attributes" || record.addedNodes.length > 0) {
+          scheduleGifScan();
+          return;
+        }
+      }
+    });
+    gifObserver.observe(document.documentElement, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ["src", "srcset"]
+    });
+  }
+
+  function stopGifObserver() {
+    if (!gifObserver) return;
+    gifObserver.disconnect();
+    gifObserver = null;
+    clearTimeout(gifScanTimer);
+    gifScanTimer = null;
+    gifScanPending = false;
+  }
+
+  function scheduleGifScan() {
+    if (gifScanPending) return;
+    gifScanPending = true;
+    clearTimeout(gifScanTimer);
+    gifScanTimer = setTimeout(() => {
+      gifScanPending = false;
+      gifScanTimer = null;
+      if (!gifFreezingEnabled || !document.documentElement) return;
+      scanGifCandidates(document);
+    }, 260);
+  }
+
+  function scanGifCandidates(scope) {
+    if (!scope?.querySelectorAll) return;
+    if (scope instanceof HTMLImageElement) freezeAnimatedGif(scope);
+    scope.querySelectorAll("img").forEach(freezeAnimatedGif);
+  }
+
+  // Reduce-motion: pause animated GIFs by swapping in a static first frame.
+  // Cross-origin GIFs without CORS headers taint the canvas and cannot be frozen,
+  // so those are left untouched.
+  function freezeAnimatedGif(img) {
+    if (!(img instanceof HTMLImageElement)) return;
+    if (img.hasAttribute(GIF_FROZEN_ATTR) || isExtensionUiElement(img)) return;
+    const src = img.currentSrc || img.src || "";
+    if (!/\.gif(\?|#|$)/i.test(src)) return;
+
+    const draw = () => {
+      if (!gifFreezingEnabled || img.hasAttribute(GIF_FROZEN_ATTR)) return;
+      const width = img.naturalWidth || img.width;
+      const height = img.naturalHeight || img.height;
+      if (!width || !height) return;
+      try {
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        canvas.getContext("2d").drawImage(img, 0, 0, width, height);
+        const frozen = canvas.toDataURL("image/png");
+        img.setAttribute(GIF_FROZEN_ATTR, "1");
+        img.dataset.asdGifOriginal = src;
+        if (img.srcset) {
+          img.dataset.asdGifSrcset = img.srcset;
+          img.removeAttribute("srcset");
+        }
+        img.src = frozen;
+      } catch {
+        // Tainted (cross-origin) canvas — leave the animated GIF in place.
+      }
+    };
+
+    if (img.complete && (img.naturalWidth || img.width)) draw();
+    else img.addEventListener("load", draw, { once: true });
+  }
+
+  function restoreFrozenGifs() {
+    document.querySelectorAll(`img[${GIF_FROZEN_ATTR}]`).forEach((img) => {
+      const original = img.dataset.asdGifOriginal;
+      const srcset = img.dataset.asdGifSrcset;
+      img.removeAttribute(GIF_FROZEN_ATTR);
+      delete img.dataset.asdGifOriginal;
+      delete img.dataset.asdGifSrcset;
+      if (srcset) img.setAttribute("srcset", srcset);
+      if (original) img.src = original;
     });
   }
 
