@@ -565,8 +565,7 @@
     "div[class*=\"advert\" i]",
     "div[class*=\"sponsored\" i]",
     "[data-testid*=\"sponsored\" i]",
-    "[data-testid*=\"promoted\" i]",
-    "aside[class*=\"ad\" i]"
+    "[data-testid*=\"promoted\" i]"
   ].join(",");
   const AD_MARKER_PATTERN =
     /(^|[\s_-])(ad|ads|advert|advertisement|sponsor|sponsored|promoted|adslot|adunit|adbanner|adcontainer|adsbygoogle|dfp|gpt-ad|google_ads|kakao[_-]?ad[_-]?area|power[_-]?link|view[_-]?ad|ad[_-]?bottom)([\s_-]|$)|(^|[\s_-])rightbanner\d*($|[\s_-])|광고|파워링크/i;
@@ -1989,7 +1988,7 @@
       // Never swallow a navigation/search bar (e.g. YouTube's #masthead-container is
       // full-width but short, so it looks "peripheral" — collapsing it hides search).
       if (isInteractiveChrome(parent)) break;
-      if (isLikelyAdElement(parent) || isSmallPeripheralBlock(parent)) {
+      if (isLikelyAdElement(parent)) {
         current = parent;
       }
     }
@@ -2133,13 +2132,6 @@
         "nav, header, [role='search'], [role='navigation'], [role='banner'], input:not([type='hidden']), textarea, select"
       )
     );
-  }
-
-  function isSmallPeripheralBlock(element) {
-    const rect = element.getBoundingClientRect();
-    if (!rect.width || !rect.height) return false;
-    if (rect.width > window.innerWidth * 0.9 && rect.height > window.innerHeight * 0.45) return false;
-    return rect.height <= 360 || rect.width <= 420;
   }
 
   function syncReadingRuler(shouldEnable) {
